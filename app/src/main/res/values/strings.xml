@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Flashcards</string>
+    <string name="title_activity_card">CardActivity</string>
+    <string name="title_activity_add_card">AddCardActivity</string>
+</resources>
