@@ -6,7 +6,10 @@ import android.os.SystemClock
 class Stopwatch {
     private var startTime = 0L
     private var accumulatedTime = 0L
-    private var isRunning = false
+    private var running = false
+    var isRunning
+        get() = running
+        private set(value) { running = value }
 
     // Start or resume the stopwatch
     fun start() {

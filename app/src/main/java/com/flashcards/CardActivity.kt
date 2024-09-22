@@ -30,16 +30,28 @@ class CardActivity : ComponentActivity() {
         const val DECK_NAME_STR = "DECK_NAME"
     }
 
-    var deck: Deck = Deck("")
+    var deck: Deck = Deck.dummy
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        deck = Deck(intent.extras?.getString(DECK_NAME_STR) ?: "")
+        deck = Deck.get(intent.extras?.getString(DECK_NAME_STR)!!)
         deck.load(this)
-        if (deck.cards.isEmpty()) finish()
+        //if (deck.cards.isEmpty()) finish()
         setContent { FlashcardsTheme { Content() } }
     }
 
+    override fun onPause() {
+        super.onPause()
+        resumeStopwatch = stopwatch.isRunning
+        stopwatch.pause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (resumeStopwatch) stopwatch.start()
+    }
+
     val stopwatch = Stopwatch()
+    var resumeStopwatch = false
 
     @Preview
     @Composable
@@ -52,19 +64,24 @@ class CardActivity : ComponentActivity() {
         var showFront = remember { mutableStateOf(true) }
         var showBack = remember { mutableStateOf(true) }
         fun cardDone() = showFront.value && showBack.value
-        var card = Card("Front", "Back")
+        fun card() =
+            if (cardIndex in deck.cards.indices) deck.cards[cardIndex]
+            else Card("Front", "Back")
         fun nextCard() {
-            card.back
             cardIndex = deck.getRandomCardIndex()
-            card = deck.cards[cardIndex]
             showFront.value = Math.random() > 0.5
-            showHint.value = card.hint == null
+            showHint.value = card().hint == null
             showBack.value = !showFront.value
-            stopwatch.reset()
             stopwatch.start()
         }
         if (!isPreview()) LaunchedEffect(Unit) { nextCard() }
-        if (cardIndex >= 0) card = deck.cards[cardIndex]
+        if (deck.cards.isEmpty()) finish()
+        if (cardIndex >= deck.cards.size) nextCard()
+        if (cardDone() && stopwatch.isRunning) {
+            card().time = stopwatch.getElapsedTimeMillis()
+            deck.save(this@CardActivity)
+            stopwatch.reset()
+        }
 
         Column(
             Modifier
@@ -77,7 +94,8 @@ class CardActivity : ComponentActivity() {
                             showBack.value = true
                         } else showHint.value = true
                     })
-                }.pointerInput(Unit) {
+                }
+                .pointerInput(Unit) {
                     detectDragGestures(
                         onDrag = { _, _ -> },
                         onDragStart = {},
@@ -120,13 +138,13 @@ class CardActivity : ComponentActivity() {
             }
 
             Spacer(Modifier.weight(1f))
-            ButtonOrText(card.front, "Show front", showFront)
+            ButtonOrText(card().front, "Show front", showFront)
             Spacer(Modifier.weight(1f))
-            if (card.hint != null) {
-                ButtonOrText(card.hint!!, "Show hint", showHint)
+            if (card().hint != null) {
+                ButtonOrText(card().hint!!, "Show hint", showHint)
                 Spacer(Modifier.weight(1f))
             }
-            ButtonOrText(card.back, "Show back", showBack)
+            ButtonOrText(card().back, "Show back", showBack)
             Spacer(Modifier.weight(2f))
 
             Text(when {

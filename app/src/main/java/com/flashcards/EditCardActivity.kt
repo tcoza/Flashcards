@@ -43,8 +43,8 @@ class EditCardActivity : ComponentActivity() {
     @Composable
     @Preview(showBackground = true)
     fun Content() {
-        val deckName = intent?.extras?.getString(DECK_NAME_STR) ?: ""
-        val deck = remember { Deck(deckName).apply { if (deckName != "") load(this@EditCardActivity) } }
+        val deckName = intent?.extras?.getString(DECK_NAME_STR)
+        val deck = remember { if (deckName != null) Deck.get(deckName) else Deck.dummy }
         val cardIndex = intent?.extras?.getInt(CARD_INDEX_INT, -1) ?: -1
         val isNewCard = cardIndex < 0
 

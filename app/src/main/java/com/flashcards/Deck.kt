@@ -1,12 +1,13 @@
 package com.flashcards
 
 import android.content.Context
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.platform.LocalInspectionMode
 import java.io.*
 import java.util.Scanner
 
-class Deck(var name: String) {
-    val cards = mutableListOf<Card>()
+class Deck private constructor(val name: String) {
+    val cards = mutableStateListOf<Card>()
 
     fun save(context: Context) = context.openFileOutput(fileName, Context.MODE_PRIVATE).use { export(it) }
 
@@ -42,17 +43,25 @@ class Deck(var name: String) {
         get() = "$fileNamePrefix$name$fileNameSuffix"
 
     companion object {
-        public const val MIME_TYPE = "text/plain"
+        const val MIME_TYPE = "text/plain"
         private const val fileNamePrefix = "deck_"
         private const val fileNameSuffix = ".txt"
 
-        fun Context.getDecks(load: Boolean = false): Array<Deck> {
-            return this.fileList()
-                .filter { filename -> filename.startsWith(fileNamePrefix) }
-                .filter { filename -> filename.endsWith(fileNameSuffix) }
-                .map { filename -> Deck(filename.removePrefix(fileNamePrefix).removeSuffix(fileNameSuffix))
-                    .apply { if (load) load(this@getDecks) } }
-                .toTypedArray()
+        val list = mutableStateListOf<Deck>()
+
+        fun load(context: Context) {
+            list.clear()
+            context.fileList()
+                .filter { it.startsWith(fileNamePrefix) }
+                .map { it.removePrefix(fileNamePrefix) }
+                .filter { it.endsWith(fileNameSuffix) }
+                .map { it.removeSuffix(fileNameSuffix) }
+                .map { Deck(it).apply { load(context) } }
+                .map { list.add(it) }
         }
+
+        fun get(name: String) = list.first { it.name == name }
+        fun create(context: Context, name: String) = Deck(name).apply { save(context); list.add(this) }
+        val dummy = Deck("")
     }
 }

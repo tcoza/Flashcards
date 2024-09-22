@@ -33,7 +33,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.flashcards.Deck.Companion.getDecks
 import com.flashcards.ui.theme.FlashcardsTheme
 
 class MainActivity : ComponentActivity() {
@@ -43,6 +42,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Deck.load(this)
         setContent { FlashcardsTheme { Content() } }
 
         openFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
@@ -71,12 +71,9 @@ class MainActivity : ComponentActivity() {
                 .padding(8.dp)
                 .verticalScroll(scrollState)
         ) {
-            val decks =
-                if (isPreview()) remember { mutableStateListOf() }
-                else remember { mutableStateListOf(*this@MainActivity.getDecks(true)) }
             val selected = remember { mutableStateOf(-1) }
-            for (index in 0 until decks.size) {
-                DeckRow(decks, index, selected)
+            for (index in 0 until Deck.list.size) {
+                DeckRow(index, selected)
                 Spacer(Modifier.height(8.dp))
             }
             Column(Modifier
@@ -85,9 +82,8 @@ class MainActivity : ComponentActivity() {
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color(0xFFBB86FC))
                 .clickable {
-                    InputBox("Enter deck name:") { name ->
-                        decks.add(Deck(name ?: return@InputBox)
-                            .apply { save(this@MainActivity) })
+                    InputBox("Enter deck name:") {
+                        Deck.create(this@MainActivity, it ?: return@InputBox)
                     }
                 }
                 .padding(16.dp)
@@ -98,8 +94,8 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun DeckRow(decks: SnapshotStateList<Deck>, index: Int, selected: MutableState<Int>) {
-        val deck = decks[index]
+    fun DeckRow(index: Int, selected: MutableState<Int>) {
+        val deck = Deck.list[index]
         Column(Modifier
             .fillMaxWidth()
             .shadow(8.dp, RoundedCornerShape(16.dp))
