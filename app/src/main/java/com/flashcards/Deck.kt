@@ -42,7 +42,19 @@ class Deck private constructor(val name: String) {
         }
     }
 
-    fun getRandomCardIndex() = (Math.random() * cards.size).toInt()
+    fun getRandomCardIndex(): Int {
+        cards.withIndex()
+            .firstOrNull { it.value.time == 0L }
+            ?.let { return it.index }
+        val weights = cards.map { it.time * it.time }
+        var random = (Math.random() * weights.sum()).toInt()
+        var currSum: Long = 0
+        for (i in weights.indices) {
+            currSum += weights[i]
+            if (currSum > random) return i
+        }
+        return -1   // Shouldn't be here
+    }
 
     private val fileName
         get() = "$fileNamePrefix$name$fileNameSuffix"
