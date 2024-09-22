@@ -13,7 +13,11 @@ class Card(front: String = "", back: String = "") {
 
     fun save() = "$front\t$back\t${hint.emptyIfNull()}\t$time"
 
+    fun addTime(time: Long) { this.time = (ALPHA * time + (1 - ALPHA) * this.time).toLong() }
+
     companion object {
+        const val ALPHA = 0.5
+
         fun load(string: String): Card? {
             val fields = string.split("\t")
             if (fields.size < 2) return null

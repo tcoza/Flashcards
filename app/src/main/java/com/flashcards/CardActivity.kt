@@ -77,7 +77,7 @@ class CardActivity : ComponentActivity() {
         if (deck.cards.isEmpty()) finish()
         if (cardIndex >= deck.cards.size) nextCard()
         if (cardDone() && stopwatch.isRunning) {
-            card().time = stopwatch.getElapsedTimeMillis()
+            card().addTime(stopwatch.getElapsedTimeMillis())
             deck.save(this@CardActivity)
             stopwatch.reset()
         }

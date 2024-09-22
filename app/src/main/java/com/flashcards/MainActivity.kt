@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text(deck.name)
                 Spacer(modifier = Modifier.weight(1f))
-                Text("${deck.cards.size} cards, ${"%.1f".format(deck.getAverageTime())} s/card")
+                Text("${deck.cards.size} cards (${"%.1f".format(deck.getAverageTime())} s/card)")
                 Spacer(Modifier.width(8.dp))
                 SmallButton(if (isSelected) "▲" else "▼") {
                     selected.value = if (isSelected) -1 else index
