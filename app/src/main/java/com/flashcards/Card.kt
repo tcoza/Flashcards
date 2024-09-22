@@ -8,7 +8,7 @@ class Card(front: String = "", back: String = "") {
     var front by mutableStateOf("")
     var back by mutableStateOf("")
     var hint by mutableStateOf<String?>(null)
-    var time: Long = 0L     // Time spent in millis
+    var time by mutableStateOf(0L)   // Time spent in millis
     init { this.front = front; this.back = back }
 
     fun save() = "$front\t$back\t${hint.emptyIfNull()}\t$time"

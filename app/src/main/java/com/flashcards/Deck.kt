@@ -1,6 +1,7 @@
 package com.flashcards
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.platform.LocalInspectionMode
 import java.io.*
@@ -41,6 +42,13 @@ class Deck private constructor(val name: String) {
                 it.println(card.save())
         }
     }
+
+    @Composable
+    fun getAverageTime(): Double =
+        cards
+        .map { it.time }
+        .filter { it != 0L }
+        .average() / 1000
 
     fun getRandomCardIndex(): Int {
         cards.withIndex()
