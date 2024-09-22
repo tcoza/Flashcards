@@ -35,7 +35,6 @@ class CardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         deck = Deck.get(intent.extras?.getString(DECK_NAME_STR)!!)
         deck.load(this)
-        //if (deck.cards.isEmpty()) finish()
         setContent { FlashcardsTheme { Content() } }
     }
 

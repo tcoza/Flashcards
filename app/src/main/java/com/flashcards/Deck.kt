@@ -17,6 +17,11 @@ class Deck private constructor(val name: String) {
         catch (_: FileNotFoundException) {}
     }
 
+    fun delete(context: Context) {
+        context.deleteFile(fileName)
+        list.remove(this)
+    }
+
     fun import(stream: InputStream): Int {
         Scanner(stream).use {
             var count = 0

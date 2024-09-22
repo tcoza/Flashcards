@@ -140,18 +140,31 @@ class MainActivity : ComponentActivity() {
                         this@MainActivity.deck = deck
                         saveFileLauncher.launch("${deck.name}.txt")
                     }
+                    Spacer(Modifier.width(8.dp))
+                    SmallButton("Delete", Color(0xFFBB1122)) {
+                        AlertDialog.Builder(this@MainActivity).apply {
+                            setMessage("Delete ${deck.name}?")
+                            setPositiveButton("Yes") { _, _ ->
+                                deck.delete(this@MainActivity)
+                                selected.value = -1
+                            }
+                            setNegativeButton("No") { dialog, _ -> dialog.dismiss() }
+                            create()
+                            show()
+                        }
+                    }
                 }
             }
         }
     }
 
     @Composable
-    fun SmallButton(text: String, onClick: () -> Unit) {
+    fun SmallButton(text: String, color: Color = Color(0xFF8B76EC), onClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .height(32.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF8B76EC))
+                .background(color)
                 .clickable(onClick = onClick)
                 .padding(horizontal = 8.dp)
         ) {
