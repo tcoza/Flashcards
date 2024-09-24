@@ -102,8 +102,10 @@ class EditCardActivity : ComponentActivity() {
                         focusRequester.requestFocus()
                     }
                     else {
-                        card = card.copy(front = front, back = back, hint = hint.nullIfEmpty())
-                        db().card().update(card)
+                        db().card().update(card.copy(
+                            front = front,
+                            back = back,
+                            hint = hint.nullIfEmpty()))
                         finish()
                     }
                 }) {

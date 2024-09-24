@@ -12,7 +12,7 @@ data class Card(
     @ColumnInfo(name = "created_at") val created_at: Long
 ) {
     companion object {
-        val dummy = Card(0, 0, "Front", "Back", null, 0)
+        val dummy = Card(-1, -1, "Front", "Back", null, 0)
         fun empty() = Card(0, 0, "", "", null, 0L)
     }
 }

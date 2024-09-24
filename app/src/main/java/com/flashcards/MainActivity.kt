@@ -42,7 +42,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        decks.addAll(db().deck().getAll())
         setContent { FlashcardsTheme { Content() } }
 
         openFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
@@ -59,6 +58,12 @@ class MainActivity : ComponentActivity() {
                 this.showToast("Exported ${count} cards")
             }
         }}
+    }
+
+    override fun onResume() {
+        super.onResume()
+        decks.clear()
+        decks.addAll(db().deck().getAll())
     }
 
     var decks = mutableStateListOf<Deck>()

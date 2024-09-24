@@ -45,6 +45,7 @@ class CardActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (resumeStopwatch) stopwatch.start()
+        card = db().card().getByID(card.id) ?: return
     }
 
     val stopwatch = Stopwatch()
