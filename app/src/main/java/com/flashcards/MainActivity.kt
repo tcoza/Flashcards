@@ -22,10 +22,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,28 +36,32 @@ import com.flashcards.ui.theme.FlashcardsTheme
 class MainActivity : ComponentActivity() {
     private lateinit var openFileLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var saveFileLauncher: ActivityResultLauncher<String>
-    private var deck: Deck? = null      // Argument
+    private var deck: Deck? = null      // Argument to above
+
+    val MIME_TYPE = "text/plain"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Deck.load(this)
+        decks.addAll(db().deck().getAll())
         setContent { FlashcardsTheme { Content() } }
 
         openFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
             if (deck == null) return@registerForActivityResult
             contentResolver.openInputStream(uri)!!.use {
                 this.showToast("Imported ${deck?.import(it)} cards")
-                deck?.save(this@MainActivity);
             }
         }}
-        saveFileLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(Deck.MIME_TYPE)) {it?.let { uri ->
+        saveFileLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(MIME_TYPE)) {it?.let { uri ->
             if (deck == null) return@registerForActivityResult
             contentResolver.openOutputStream(uri)!!.use {
-                deck?.export(it)
-                this.showToast("Exported ${deck?.cards?.size} cards")
+                deck!!.export(it)
+                val count = db().card().count(deck!!.id)
+                this.showToast("Exported ${count} cards")
             }
         }}
     }
+
+    var decks = mutableStateListOf<Deck>()
 
     @Composable
     @Preview(showBackground = true)
@@ -72,7 +74,7 @@ class MainActivity : ComponentActivity() {
                 .verticalScroll(scrollState)
         ) {
             val selected = remember { mutableStateOf(-1) }
-            for (index in 0 until Deck.list.size) {
+            for (index in decks.indices) {
                 DeckRow(index, selected)
                 Spacer(Modifier.height(8.dp))
             }
@@ -83,7 +85,9 @@ class MainActivity : ComponentActivity() {
                 .background(Color(0xFFBB86FC))
                 .clickable {
                     InputBox("Enter deck name:") {
-                        Deck.create(this@MainActivity, it ?: return@InputBox)
+                        val deck = Deck(0, it ?: return@InputBox)
+                        db().deck().insert(deck)
+                        decks.add(deck)
                     }
                 }
                 .padding(16.dp)
@@ -95,7 +99,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun DeckRow(index: Int, selected: MutableState<Int>) {
-        val deck = Deck.list[index]
+        val deck = decks[index]
         Column(Modifier
             .fillMaxWidth()
             .shadow(8.dp, RoundedCornerShape(16.dp))
@@ -103,7 +107,7 @@ class MainActivity : ComponentActivity() {
             .background(Color(0xFF9B86FC))
             .clickable {
                 Intent(this@MainActivity, CardActivity::class.java).apply {
-                    putExtra(CardActivity.DECK_NAME_STR, deck.name)
+                    putExtra(CardActivity.DECK_ID_INT, deck.id)
                     this@MainActivity.startActivity(this)
                 }
             }
@@ -115,7 +119,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text(deck.name)
                 Spacer(modifier = Modifier.weight(1f))
-                Text("${deck.cards.size} cards (${"%.1f".format(deck.getAverageTime())} s/card)")
+                Text("${db().card().count(deck.id)} cards")
                 Spacer(Modifier.width(8.dp))
                 SmallButton(if (isSelected) "▲" else "▼") {
                     selected.value = if (isSelected) -1 else index
@@ -128,14 +132,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     SmallButton("+ Add Cards") {
                         Intent(this@MainActivity, EditCardActivity::class.java).apply {
-                            putExtra(EditCardActivity.DECK_NAME_STR, deck.name)
+                            putExtra(EditCardActivity.DECK_ID_INT, deck.id)
                             this@MainActivity.startActivity(this)
                         }
                     }
                     Spacer(Modifier.weight(1f))
                     SmallButton("Import") {
                         this@MainActivity.deck = deck
-                        openFileLauncher.launch(arrayOf(Deck.MIME_TYPE))
+                        openFileLauncher.launch(arrayOf(MIME_TYPE))
                     }
                     Spacer(Modifier.width(8.dp))
                     SmallButton("Export") {
@@ -147,7 +151,8 @@ class MainActivity : ComponentActivity() {
                         AlertDialog.Builder(this@MainActivity).apply {
                             setMessage("Delete ${deck.name}?")
                             setPositiveButton("Yes") { _, _ ->
-                                deck.delete(this@MainActivity)
+                                db().deck().delete(deck)
+                                decks.remove(deck)
                                 selected.value = -1
                             }
                             setNegativeButton("No") { dialog, _ -> dialog.dismiss() }

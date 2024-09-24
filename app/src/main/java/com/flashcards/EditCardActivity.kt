@@ -3,10 +3,8 @@ package com.flashcards
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
@@ -26,32 +24,34 @@ import com.flashcards.ui.theme.FlashcardsTheme
 
 class EditCardActivity : ComponentActivity() {
     companion object {
-        const val DECK_NAME_STR = "DECK_NAME"
-        const val CARD_INDEX_INT = "CARD_INDEX"
+        const val DECK_ID_INT = "DECK_ID"
+        const val CARD_ID_INT = "CARD_ID"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            FlashcardsTheme {
-                Content()
-            }
-        }
+        val deck_id = (intent?.extras?.getInt(DECK_ID_INT))!!
+        deck = db().deck().getByID(deck_id)!!
+        val card_id = intent?.extras?.getInt(CARD_ID_INT, -1) ?: -1
+        isNew = (card_id == -1)
+        card = if (isNew) Card.empty()
+            else db().card().getByID(card_id)!!
+        setContent { FlashcardsTheme { Content() } }
     }
+
+    var deck: Deck = Deck.dummy
+    var card: Card = Card.dummy
+    var isNew: Boolean = false
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     @Preview(showBackground = true)
     fun Content() {
-        val deckName = intent?.extras?.getString(DECK_NAME_STR)
-        val deck = remember { if (deckName != null) Deck.get(deckName) else Deck.dummy }
-        val cardIndex = intent?.extras?.getInt(CARD_INDEX_INT, -1) ?: -1
-        val isNewCard = cardIndex < 0
+        val cardIndex = intent?.extras?.getInt(CARD_ID_INT, -1) ?: -1
 
-        val card = deck.cards.getOrElse(cardIndex) { Card() }
         var front by remember { mutableStateOf(card.front) }
         var back by remember { mutableStateOf(card.back) }
-        var hint by remember { mutableStateOf(card.hint ?: "") }
+        var hint by remember { mutableStateOf(card.hint.emptyIfNull()) }
 
         val focusRequester = FocusRequester()
 
@@ -80,13 +80,12 @@ class EditCardActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth()) {
-                if (!isNewCard) {
+                if (!isNew) {
                     Button(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Red),
                         onClick = {
-                            deck.cards.removeAt(cardIndex)
-                            deck.save(this@EditCardActivity)
+                            db().card().delete(card)
                             finish()
                         }
                     ) {
@@ -95,16 +94,20 @@ class EditCardActivity : ComponentActivity() {
                 }
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
-                    card.front = front
-                    card.back = back
-                    card.hint = hint
-                    if (isNewCard) deck.cards.add(card)
-                    deck.save(this@EditCardActivity)
-                    if (!isNewCard) finish()
-                    else { front = ""; back = ""; hint = "" }
-                    focusRequester.requestFocus()
+                    if (isNew) {
+                        db().card().insert(Card(0, deck.id,
+                            front, back, hint.nullIfEmpty(),
+                            System.currentTimeMillis()))
+                        front = ""; back = ""; hint = ""
+                        focusRequester.requestFocus()
+                    }
+                    else {
+                        card = card.copy(front = front, back = back, hint = hint.nullIfEmpty())
+                        db().card().update(card)
+                        finish()
+                    }
                 }) {
-                    Text(if (isNewCard) "Add" else "Save")
+                    Text(if (isNew) "Add" else "Save")
                 }
             }
         }

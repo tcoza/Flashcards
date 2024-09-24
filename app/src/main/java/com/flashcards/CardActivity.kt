@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -27,14 +26,13 @@ import com.flashcards.ui.theme.FlashcardsTheme
 
 class CardActivity : ComponentActivity() {
     companion object {
-        const val DECK_NAME_STR = "DECK_NAME"
+        const val DECK_ID_INT = "DECK_ID"
     }
 
-    var deck: Deck = Deck.dummy
+    lateinit var deck: Deck
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        deck = Deck.get(intent.extras?.getString(DECK_NAME_STR)!!)
-        deck.load(this)
+        deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
         setContent { FlashcardsTheme { Content() } }
     }
 
@@ -52,33 +50,38 @@ class CardActivity : ComponentActivity() {
     val stopwatch = Stopwatch()
     var resumeStopwatch = false
 
+    var card by mutableStateOf(Card.dummy)
+    var showBack  = false
+
     @Preview
     @Composable
     fun Content() {
         val fontSize = 64.sp
         val buttonFontSize = 24.sp
 
-        var cardIndex by remember { mutableStateOf(-1) }
         var showHint = remember { mutableStateOf(true) }
         var showFront = remember { mutableStateOf(true) }
         var showBack = remember { mutableStateOf(true) }
         fun cardDone() = showFront.value && showBack.value
-        fun card() =
-            if (cardIndex in deck.cards.indices) deck.cards[cardIndex]
-            else Card("Front", "Back")
         fun nextCard() {
-            cardIndex = deck.getRandomCardIndex()
-            showFront.value = Math.random() > 0.5
-            showHint.value = card().hint == null
-            showBack.value = !showFront.value
+            val pair = deck.getRandomCard()
+            card = pair.first
+            this.showBack = pair.second
+            showFront.value = !this.showBack
+            showHint.value = card.hint == null
+            showBack.value = this.showBack
             stopwatch.start()
         }
         if (!isPreview()) LaunchedEffect(Unit) { nextCard() }
-        if (deck.cards.isEmpty()) finish()
-        if (cardIndex >= deck.cards.size) nextCard()
+        if (deck.size == 0) finish()
+        if (db().card().getByID(card.id) == null) nextCard()
         if (cardDone() && stopwatch.isRunning) {
-            card().addTime(stopwatch.getElapsedTimeMillis())
-            deck.save(this@CardActivity)
+            db().flash().insert(Flash(0,
+                card.id,
+                System.currentTimeMillis(),
+                this.showBack,
+                stopwatch.getElapsedTimeMillis(),
+                true))
             stopwatch.reset()
         }
 
@@ -127,8 +130,8 @@ class CardActivity : ComponentActivity() {
                 onClick = {
                     if (!cardDone()) return@Button
                     Intent(this@CardActivity, EditCardActivity::class.java).apply {
-                        putExtra(EditCardActivity.DECK_NAME_STR, deck.name)
-                        putExtra(EditCardActivity.CARD_INDEX_INT, cardIndex)
+                        putExtra(EditCardActivity.DECK_ID_INT, deck.id)
+                        putExtra(EditCardActivity.CARD_ID_INT, card.id)
                         this@CardActivity.startActivity(this)
                     }
                 }
@@ -137,13 +140,13 @@ class CardActivity : ComponentActivity() {
             }
 
             Spacer(Modifier.weight(1f))
-            ButtonOrText(card().front, "Show front", showFront)
+            ButtonOrText(card.front, "Show front", showFront)
             Spacer(Modifier.weight(1f))
-            if (card().hint != null) {
-                ButtonOrText(card().hint!!, "Show hint", showHint)
+            if (card.hint != null) {
+                ButtonOrText(card.hint!!, "Show hint", showHint)
                 Spacer(Modifier.weight(1f))
             }
-            ButtonOrText(card().back, "Show back", showBack)
+            ButtonOrText(card.back, "Show back", showBack)
             Spacer(Modifier.weight(2f))
 
             Text(when {
