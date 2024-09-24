@@ -78,8 +78,8 @@ class CardActivity : ComponentActivity() {
             stopwatch.start()
         }
         if (!isPreview()) {
+            if (deck.size == 0) { finish(); return }
             LaunchedEffect(Unit) { nextCard() }
-            if (deck.size == 0) finish()
             if (db().card().getByID(card.id) == null) nextCard()
         }
         if (cardDone() && stopwatch.isRunning) stopwatch.pause()

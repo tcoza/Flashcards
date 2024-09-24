@@ -90,8 +90,8 @@ class MainActivity : ComponentActivity() {
                 .background(Color(0xFFBB86FC))
                 .clickable {
                     InputBox("Enter deck name:") {
-                        val deck = Deck(0, it ?: return@InputBox)
-                        db().deck().insert(deck)
+                        var deck = Deck(0, it ?: return@InputBox)
+                        deck = deck.copy(id = db().deck().insert(deck).toInt())
                         decks.add(deck)
                     }
                 }

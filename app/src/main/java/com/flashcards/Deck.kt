@@ -79,7 +79,7 @@ interface DeckDao {
     @Query("SELECT * FROM deck")
     fun getAll(): List<Deck>
 
-    @Insert fun insert(dbo: Deck)
+    @Insert fun insert(dbo: Deck): Long
     @Update fun update(dbo: Deck)
     @Delete fun delete(dbo: Deck)
 }
