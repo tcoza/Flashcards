@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -29,7 +31,7 @@ class CardActivity : ComponentActivity() {
         const val DECK_ID_INT = "DECK_ID"
     }
 
-    lateinit var deck: Deck
+    var deck: Deck = Deck.dummy
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
@@ -60,9 +62,9 @@ class CardActivity : ComponentActivity() {
         val fontSize = 64.sp
         val buttonFontSize = 24.sp
 
-        var showHint = remember { mutableStateOf(true) }
-        var showFront = remember { mutableStateOf(true) }
-        var showBack = remember { mutableStateOf(true) }
+        val showHint = remember { mutableStateOf(true) }
+        val showFront = remember { mutableStateOf(true) }
+        val showBack = remember { mutableStateOf(true) }
         fun cardDone() = showFront.value && showBack.value
         fun nextCard() {
             val pair = deck.getRandomCard()
@@ -71,20 +73,15 @@ class CardActivity : ComponentActivity() {
             showFront.value = !this.showBack
             showHint.value = card.hint == null
             showBack.value = this.showBack
+            stopwatch.reset()
             stopwatch.start()
         }
-        if (!isPreview()) LaunchedEffect(Unit) { nextCard() }
-        if (deck.size == 0) finish()
-        if (db().card().getByID(card.id) == null) nextCard()
-        if (cardDone() && stopwatch.isRunning) {
-            db().flash().insert(Flash(0,
-                card.id,
-                System.currentTimeMillis(),
-                this.showBack,
-                stopwatch.getElapsedTimeMillis(),
-                true))
-            stopwatch.reset()
+        if (!isPreview()) {
+            LaunchedEffect(Unit) { nextCard() }
+            if (deck.size == 0) finish()
+            if (db().card().getByID(card.id) == null) nextCard()
         }
+        if (cardDone() && stopwatch.isRunning) stopwatch.pause()
 
         Column(
             Modifier
@@ -99,10 +96,10 @@ class CardActivity : ComponentActivity() {
                     })
                 }
                 .pointerInput(Unit) {
-                    detectDragGestures(
-                        onDrag = { _, _ -> },
-                        onDragStart = {},
-                        onDragEnd = { if (cardDone()) nextCard() })
+//                    detectDragGestures(
+//                        onDrag = { _, _ -> },
+//                        onDragStart = {},
+//                        onDragEnd = { if (cardDone()) nextCard() })
                 },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -148,15 +145,44 @@ class CardActivity : ComponentActivity() {
                 Spacer(Modifier.weight(1f))
             }
             ButtonOrText(card.back, "Show back", showBack)
-            Spacer(Modifier.weight(2f))
+            Spacer(Modifier.weight(1f))
 
+            Row(modifier = Modifier.hideIf(!cardDone())) {
+                @Composable
+                fun ResultButton(value: Boolean) {
+                    val color = if (value) Color.Green else Color.Red
+                    val text = if (value) "✔" else "✘"
+                    Button({
+                        if (!cardDone()) return@Button
+                        db().flash().insert(Flash(0,
+                            card.id,
+                            System.currentTimeMillis(),
+                            this@CardActivity.showBack,
+                            stopwatch.getElapsedTimeMillis(),
+                            value))
+                        nextCard()
+                    },
+                        colors = ButtonDefaults.buttonColors(containerColor = color),
+                        modifier = Modifier.size(96.dp)
+                    ) {
+                        Text(text, fontSize = 48.sp)
+                    }
+
+                }
+                Spacer(Modifier.weight(2f))
+                ResultButton(value = false)
+                Spacer(Modifier.weight(1f))
+                ResultButton(value = true)
+                Spacer(Modifier.weight(2f))
+            }
             Text(when {
                     !showHint.value -> "Tap to show hint"
                     !showFront.value -> "Tap to show front"
                     !showBack.value -> "Tap to show back"
                     else -> "Swipe for next"
                 },
-                fontSize = buttonFontSize)
+                fontSize = buttonFontSize,
+                modifier = Modifier.hideIf(cardDone()))
         }
     }
 }
