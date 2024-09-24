@@ -27,7 +27,7 @@ data class Deck(
                     0, id, fields[0], fields[1],
                     fields.getOrNull(2)?.nullIfEmpty(),
                     System.currentTimeMillis())
-                if (db().card().getByFront(card.front) != null) continue
+                if (db().card().getByFront(id, card.front) != null) continue
                 db().card().insert(card)
                 count++
             }

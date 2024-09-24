@@ -21,14 +21,14 @@ data class Card(
 interface CardDao {
     @Query("SELECT * FROM card WHERE id = :id")
     fun getByID(id: Int): Card?
-    @Query("SELECT * FROM card WHERE front = :front")
-    fun getByFront(front: String): Card?
+    @Query("SELECT * FROM card WHERE deck_id = :deck_id AND front = :front")
+    fun getByFront(deck_id: Int, front: String): Card?
     @Query("SELECT * FROM card WHERE deck_id = :deck_id")
     fun getAll(deck_id: Int): List<Card>
     @Query("SELECT COUNT(*) FROM card WHERE deck_id = :deck_id")
     fun count(deck_id: Int): Int
 
-    @Insert fun insert(dbo: Card)
+    @Insert fun insert(dbo: Card): Long
     @Update fun update(dbo: Card)
     @Delete fun delete(dbo: Card)
 }

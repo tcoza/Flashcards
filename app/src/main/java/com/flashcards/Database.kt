@@ -36,6 +36,4 @@ data class Flash(
     @ColumnInfo(name = "is_back") val isBack: Boolean,
     @ColumnInfo(name = "time_elapsed") val timeElapsed: Long,
     @ColumnInfo(name = "is_correct") val isCorrect: Boolean
-) {
-    fun getScore() = if (isCorrect) Math.pow(0.5, timeElapsed.toDouble() / 10_000) else 0.0
-}
+)
