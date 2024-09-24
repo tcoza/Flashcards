@@ -12,3 +12,4 @@ fun Modifier.hideIf(condition: Boolean) = this.alpha(if (condition) 0f else 1f)
 fun Context.showToast(text: String, duration: Int = Toast.LENGTH_SHORT) = Toast.makeText(this, text, duration).show()
 fun String.nullIfEmpty() = if (this == "") null else this
 fun String?.emptyIfNull() = this ?: ""
+fun <T> Iterable<T>.random() = this.elementAt((this.count() * Math.random()).toInt())

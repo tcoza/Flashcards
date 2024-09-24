@@ -50,16 +50,21 @@ data class Deck(
             options[Pair(it, true)] = db().flash().getLast(it.id, true)
         }
         val new = options.filter { it.value == null }.map { it.key }
-        if (!new.isEmpty()) return new[(Math.random() * new.size).toInt()]
-        else return options.maxBy { flashValueFunction(it.value!!) }.key
+        if (!new.isEmpty()) return new.random()
+
+//        println("List:")
+//        options.toList()
+//            .sortedBy { flashValueFunction(it.second!!) }
+//            .forEach({ println(it.first.first.front + ": " + flashValueFunction(it.second!!)) })
+        return options.maxBy { flashValueFunction(it.value!!) }.key
     }
 
     private fun flashValueFunction(flash: Flash): Double = flash.run {
-        val expectedTime = 5_000     // 5 seconds
+        //val expectedTime = 5_000     // 5 seconds
 
+        //val score = if (isCorrect) Math.pow(0.5, timeElapsed.toDouble() / expectedTime) else 0.0
         var since = (System.currentTimeMillis() - createdAt).toDouble()
-        val score = if (isCorrect) Math.pow(0.5, timeElapsed.toDouble() / expectedTime) else 0.0
-        return Math.sqrt(since) * timeElapsed * (1 - score)
+        return Math.sqrt(since) * timeElapsed * if (isCorrect) 1 else 2 //(1 - score)
     }
 
     companion object {

@@ -2,6 +2,7 @@ package com.flashcards
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -159,7 +160,7 @@ class CardActivity : ComponentActivity() {
                             System.currentTimeMillis(),
                             this@CardActivity.showBack,
                             stopwatch.getElapsedTimeMillis(),
-                            value))
+                            value).apply { Log.d("flash", this.toString()) })
                         nextCard()
                     },
                         colors = ButtonDefaults.buttonColors(containerColor = color),
