@@ -10,10 +10,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun flash(): FlashDao
 }
 
-
-
-
-
 @Dao
 interface FlashDao {
     @Query("SELECT * FROM flash WHERE card_id = :card_id")
@@ -22,8 +18,12 @@ interface FlashDao {
     @Query("SELECT * FROM flash JOIN card ON card_id = card.id WHERE deck_id = :deck_id")
     fun getAllFromDeck(deck_id: Int): List<Flash>
 
-    @Query("SELECT * FROM flash WHERE card_id = :card_id ORDER BY created_at DESC LIMIT 1")
-    fun getLast(card_id: Int): Flash?
+    @Query("SELECT * FROM flash " +
+            "WHERE card_id = :card_id " +
+            "AND is_back = :is_back " +
+            "ORDER BY created_at DESC " +
+            "LIMIT 1")
+    fun getLast(card_id: Int, is_back: Boolean): Flash?
 
     @Insert fun insert(dbo: Flash)
 }
@@ -37,5 +37,5 @@ data class Flash(
     @ColumnInfo(name = "time_elapsed") val timeElapsed: Long,
     @ColumnInfo(name = "is_correct") val isCorrect: Boolean
 ) {
-    fun getScore() = if (isCorrect) Math.pow(0.5, timeElapsed.toDouble() / 10_000) else 0
+    fun getScore() = if (isCorrect) Math.pow(0.5, timeElapsed.toDouble() / 10_000) else 0.0
 }

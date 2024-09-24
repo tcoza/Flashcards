@@ -44,8 +44,22 @@ data class Deck(
     }
 
     fun getRandomCard(): Pair<Card, Boolean> {
-        val cards = db().card().getAll(id)
-        return Pair(cards[(Math.random() * cards.size).toInt()], Math.random() > 0.5)
+        val options = mutableMapOf<Pair<Card, Boolean>, Flash?>()
+        db().card().getAll(id).forEach {
+            options[Pair(it, false)] = db().flash().getLast(it.id, false)
+            options[Pair(it, true)] = db().flash().getLast(it.id, true)
+        }
+        val new = options.filter { it.value == null }.map { it.key }
+        if (!new.isEmpty()) return new[(Math.random() * new.size).toInt()]
+        else return options.maxBy { flashValueFunction(it.value!!) }.key
+    }
+
+    private fun flashValueFunction(flash: Flash): Double {
+        val timeSince = System.currentTimeMillis() - flash.createdAt
+        val expectedTime = 10_000     // 10 seconds
+        var score = if (!flash.isCorrect) 0.0
+            else Math.pow(0.5, flash.timeElapsed.toDouble() / expectedTime)
+        return Math.log(timeSince.toDouble()) * flash.timeElapsed * (1 - score)
     }
 
     companion object {
