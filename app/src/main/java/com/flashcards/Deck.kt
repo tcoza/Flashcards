@@ -54,12 +54,12 @@ data class Deck(
         else return options.maxBy { flashValueFunction(it.value!!) }.key
     }
 
-    private fun flashValueFunction(flash: Flash): Double {
-        val timeSince = System.currentTimeMillis() - flash.createdAt
-        val expectedTime = 10_000     // 10 seconds
-        var score = if (!flash.isCorrect) 0.0
-            else Math.pow(0.5, flash.timeElapsed.toDouble() / expectedTime)
-        return Math.log(timeSince.toDouble()) * flash.timeElapsed * (1 - score)
+    private fun flashValueFunction(flash: Flash): Double = flash.run {
+        val expectedTime = 5_000     // 5 seconds
+
+        var since = (System.currentTimeMillis() - createdAt).toDouble()
+        val score = if (isCorrect) Math.pow(0.5, timeElapsed.toDouble() / expectedTime) else 0.0
+        return Math.sqrt(since) * timeElapsed * (1 - score)
     }
 
     companion object {
