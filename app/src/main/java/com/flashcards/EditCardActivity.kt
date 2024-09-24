@@ -3,12 +3,15 @@ package com.flashcards
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +55,7 @@ class EditCardActivity : ComponentActivity() {
         var front by remember { mutableStateOf(card.front) }
         var back by remember { mutableStateOf(card.back) }
         var hint by remember { mutableStateOf(card.hint.emptyIfNull()) }
+        val cardExists = db().card().getByFront(deck.id, front)?.run { id != card.id } ?: false
 
         val focusRequester = FocusRequester()
 
@@ -66,8 +70,12 @@ class EditCardActivity : ComponentActivity() {
             OutlinedTextField(
                 label = { Text("Front") },
                 value = front, onValueChange = { front = it },
-                //onValueChange = { value -> card.value.front = value },
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester))
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                colors = if (!cardExists) TextFieldDefaults.outlinedTextFieldColors()
+                else TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.Red,
+                    unfocusedBorderColor = Color.Red
+                ))
             Spacer(Modifier.height(16.dp))
             OutlinedTextField(
                 label = { Text("Hint") },
@@ -94,21 +102,23 @@ class EditCardActivity : ComponentActivity() {
                 }
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
-                    if (isNew) {
-                        db().card().insert(Card(0, deck.id,
-                            front, back, hint.nullIfEmpty(),
-                            System.currentTimeMillis()))
-                        front = ""; back = ""; hint = ""
-                        focusRequester.requestFocus()
-                    }
-                    else {
-                        db().card().update(card.copy(
-                            front = front,
-                            back = back,
-                            hint = hint.nullIfEmpty()))
-                        finish()
-                    }
-                }) {
+                        if (isNew) {
+                            db().card().insert(Card(0, deck.id,
+                                front, back, hint.nullIfEmpty(),
+                                System.currentTimeMillis()))
+                            front = ""; back = ""; hint = ""
+                            focusRequester.requestFocus()
+                        }
+                        else {
+                            db().card().update(card.copy(
+                                front = front,
+                                back = back,
+                                hint = hint.nullIfEmpty()))
+                            finish()
+                        }
+                    },
+                    enabled = !cardExists && front != "" && back != ""
+                ) {
                     Text(if (isNew) "Add" else "Save")
                 }
             }
