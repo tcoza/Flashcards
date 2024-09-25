@@ -44,27 +44,34 @@ data class Deck(
     }
 
     fun getRandomCard(): Pair<Card, Boolean> {
-        val options = mutableMapOf<Pair<Card, Boolean>, Flash?>()
-        db().card().getAll(id).forEach {
-            options[Pair(it, false)] = db().flash().getLast(it.id, false)
-            options[Pair(it, true)] = db().flash().getLast(it.id, true)
-        }
-        val new = options.filter { it.value == null }.map { it.key }
-        if (!new.isEmpty()) return new.random()
+        val options = db().card().getAll(id)
+            .map { listOf(Pair(it, false), Pair(it, true)) }
+            .flatten()
+        val unflashed = options.filter { db().flash().getLast(it.first.id, it.second) == null }
+        if (!unflashed.isEmpty()) return unflashed.random()
 
 //        println("List:")
 //        options.toList()
-//            .sortedBy { flashValueFunction(it.second!!) }
-//            .forEach({ println(it.first.first.front + ": " + flashValueFunction(it.second!!)) })
-        return options.maxBy { flashValueFunction(it.value!!) }.key
+//            .sortedBy { flashValueFunction(it.first, it.second) }
+//            .forEach({ println(it.toString()) })
+        return options.maxBy { flashValueFunction(it.first, it.second) }
     }
 
-    private fun flashValueFunction(flash: Flash): Double = flash.run {
-        //val expectedTime = 5_000     // 5 seconds
+    // Assumes there are flashes
+    private fun flashValueFunction(card: Card, isBack: Boolean): Double {
+        val ALPHA = 0.3
+        val EXPECTED_TIME: Long = 5_000     // 5 seconds
 
-        //val score = if (isCorrect) Math.pow(0.5, timeElapsed.toDouble() / expectedTime) else 0.0
-        var since = (System.currentTimeMillis() - createdAt).toDouble()
-        return Math.sqrt(since) * timeElapsed * if (isCorrect) 1 else 2 //(1 - score)
+        var average = 0.0
+        lateinit var finalFlash: Flash
+        for (flash in db().flash().getAllFromCard(card.id, isBack)) {
+            var score = Math.pow(0.5, flash.timeElapsed.toDouble() / EXPECTED_TIME)
+            if (!flash.isCorrect) score = 0.0
+            average = ALPHA * (1 - score) + (1 - ALPHA) * average
+            finalFlash = flash
+        }
+        val since = System.currentTimeMillis() - finalFlash.createdAt
+        return Math.log(since.toDouble()) * average
     }
 
     companion object {

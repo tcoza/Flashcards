@@ -12,8 +12,11 @@ abstract class AppDatabase : RoomDatabase() {
 
 @Dao
 interface FlashDao {
-    @Query("SELECT * FROM flash WHERE card_id = :card_id")
-    fun getAllFromCard(card_id: Int): List<Flash>
+    @Query("SELECT * FROM flash " +
+            "WHERE card_id = :card_id " +
+            "AND is_back = :is_back " +
+            "ORDER BY flash.created_at")
+    fun getAllFromCard(card_id: Int, is_back: Boolean): List<Flash>
 
     @Query("SELECT * FROM flash JOIN card ON card_id = card.id WHERE deck_id = :deck_id")
     fun getAllFromDeck(deck_id: Int): List<Flash>

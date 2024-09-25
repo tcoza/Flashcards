@@ -27,6 +27,13 @@ interface CardDao {
     fun getAll(deck_id: Int): List<Card>
     @Query("SELECT COUNT(*) FROM card WHERE deck_id = :deck_id")
     fun count(deck_id: Int): Int
+//    @Query("SELECT * FROM card " +
+//            "WHERE deck_id = :deck_id " +
+//            "AND id NOT IN (" +
+//            "SELECT DISTINCT card.id FROM card " +
+//            "JOIN flash ON card.id = flash.card_id " +
+//            "WHERE deck_id = :deck_id)")
+//    fun getUnflashed(deck_id: Int): List<Card>
 
     @Insert fun insert(dbo: Card): Long
     @Update fun update(dbo: Card)
