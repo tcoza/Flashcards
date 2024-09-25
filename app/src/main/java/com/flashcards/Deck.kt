@@ -1,12 +1,10 @@
 package com.flashcards
 
-import android.content.Context
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.room.*
 import java.io.*
 import java.util.Scanner
+import kotlin.math.ln
+import kotlin.math.pow
 
 @Entity(tableName = "deck")
 data class Deck(
@@ -59,19 +57,22 @@ data class Deck(
 
     // Assumes there are flashes
     private fun flashValueFunction(card: Card, isBack: Boolean): Double {
-        val ALPHA = 0.3
+        val ALPHA = 1 / Math.E
         val EXPECTED_TIME: Long = 5_000     // 5 seconds
 
-        var average = 0.0
+        var first = true
+        var avgScore = 0.0
         lateinit var finalFlash: Flash
         for (flash in db().flash().getAllFromCard(card.id, isBack)) {
-            var score = Math.pow(0.5, flash.timeElapsed.toDouble() / EXPECTED_TIME)
-            if (!flash.isCorrect) score = 0.0
-            average = ALPHA * (1 - score) + (1 - ALPHA) * average
+            var score = if (!flash.isCorrect) 0.0
+                else 0.5.pow(flash.timeElapsed.toDouble() / EXPECTED_TIME)
+            // Average score will be near 0 for new cards
+            avgScore = ALPHA * score + (1 - ALPHA) * avgScore
             finalFlash = flash
+            first = false
         }
         val since = System.currentTimeMillis() - finalFlash.createdAt
-        return Math.log(since.toDouble()) * average
+        return ln(since.toDouble()) * (avgScore - 1).pow(2) / avgScore
     }
 
     companion object {
