@@ -53,7 +53,7 @@ data class Deck(
         val EXPECTED_TIME: Long = 5_000     // 5 seconds
 
         var avgScore = 0.0
-        lateinit var finalFlash: Flash
+        var finalFlash: Flash? = null
         for (flash in db().flash().getAllFromCard(card.id, isBack)) {
             var score = if (!flash.isCorrect) 0.0
                 else 0.5.pow(flash.timeElapsed.toDouble() / EXPECTED_TIME)
@@ -61,7 +61,7 @@ data class Deck(
             avgScore = ALPHA * score + (1 - ALPHA) * avgScore
             finalFlash = flash
         }
-        val since = System.currentTimeMillis() - finalFlash.createdAt
+        val since = System.currentTimeMillis() - (finalFlash?.createdAt ?: 0)
         return ln(since.toDouble()) * (avgScore - 1).pow(2) / avgScore
     }
 
