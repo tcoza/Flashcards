@@ -42,17 +42,9 @@ data class Deck(
     }
 
     fun getRandomCard(): Pair<Card, Boolean> {
-        val options = db().card().getAll(id)
+        return db().card().getAll(id)
             .map { listOf(Pair(it, false), Pair(it, true)) }
-            .flatten()
-        val unflashed = options.filter { db().flash().getLast(it.first.id, it.second) == null }
-        if (!unflashed.isEmpty()) return unflashed.random()
-
-//        println("List:")
-//        options.toList()
-//            .sortedBy { flashValueFunction(it.first, it.second) }
-//            .forEach({ println(it.toString()) })
-        return options.maxBy { flashValueFunction(it.first, it.second) }
+            .flatten().maxByOrRandom { flashValueFunction(it.first, it.second) }
     }
 
     // Assumes there are flashes
@@ -60,7 +52,6 @@ data class Deck(
         val ALPHA = 1 / Math.E
         val EXPECTED_TIME: Long = 5_000     // 5 seconds
 
-        var first = true
         var avgScore = 0.0
         lateinit var finalFlash: Flash
         for (flash in db().flash().getAllFromCard(card.id, isBack)) {
@@ -69,7 +60,6 @@ data class Deck(
             // Average score will be near 0 for new cards
             avgScore = ALPHA * score + (1 - ALPHA) * avgScore
             finalFlash = flash
-            first = false
         }
         val since = System.currentTimeMillis() - finalFlash.createdAt
         return ln(since.toDouble()) * (avgScore - 1).pow(2) / avgScore
