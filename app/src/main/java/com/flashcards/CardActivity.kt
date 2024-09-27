@@ -27,6 +27,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import com.flashcards.ui.theme.FlashcardsTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
@@ -40,7 +44,7 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
         setContent { FlashcardsTheme { Content() } }
-        tts = TextToSpeech(this, this)
+        tts = TextToSpeech(this, this, "com.google.android.tts")
     }
 
     override fun onPause() {
@@ -52,7 +56,7 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onResume() {
         super.onResume()
         if (resumeStopwatch) stopwatch.start()
-        card = db().card().getByID(card.id) ?: return
+        card = db().card().getByID(card.id) ?: Card.dummy
     }
 
     val stopwatch = Stopwatch()
@@ -85,8 +89,8 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
         if (!isPreview()) {
             if (deck.size == 0) { finish(); return }
-            LaunchedEffect(Unit) { nextCard() }
-            if (db().card().getByID(card.id) == null) nextCard()
+            if (card === Card.dummy || db().card().getByID(card.id) == null)
+                nextCard()
         }
         LaunchedEffect(showFront.value) {
             if (showFront.value) speakHintOrFront()
@@ -216,8 +220,12 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speak(text: String) {
-        if (!ttsInitd) { Log.e("TTS", "TTS not initialized"); return; }
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        CoroutineScope(Dispatchers.Main).launch {
+            var i = 0
+            while (i++ < 10 && !ttsInitd) delay(100)
+            if (!ttsInitd) { Log.e("TTS", "TTS not initialized"); return@launch }
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        }
     }
 
     override fun onDestroy() {
