@@ -2,6 +2,7 @@ package com.flashcards
 
 import androidx.room.*
 import java.io.*
+import java.lang.Integer.min
 import java.util.Scanner
 import kotlin.math.ln
 import kotlin.math.pow
@@ -42,7 +43,11 @@ data class Deck(
     }
 
     fun getRandomCard(): Pair<Card, Boolean> {
+        val removeLastCount = min(3, size - 1)
+        if (removeLastCount < 0) throw Exception("Deck is empty")
+        val lastN = db().flash().getLastN(id, removeLastCount)
         return db().card().getAll(id)
+            .filter { !lastN.any { f -> it.id == f.cardID } }
             .map { listOf(Pair(it, false), Pair(it, true)) }
             .flatten().maxByOrRandom { flashValueFunction(it.first, it.second) }
     }

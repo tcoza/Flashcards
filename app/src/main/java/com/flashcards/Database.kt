@@ -28,6 +28,13 @@ interface FlashDao {
             "LIMIT 1")
     fun getLast(card_id: Int, is_back: Boolean): Flash?
 
+    @Query("SELECT * FROM flash " +
+            "JOIN card ON card_id = card.id " +
+            "WHERE deck_id = :deck_id " +
+            "ORDER BY flash.created_at DESC " +
+            "LIMIT :n")
+    fun getLastN(deck_id: Int, n: Int): List<Flash>
+
     @Insert fun insert(dbo: Flash)
 }
 
