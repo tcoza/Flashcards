@@ -43,7 +43,7 @@ data class Deck(
     }
 
     fun getRandomCard(): Pair<Card, Boolean> {
-        val removeLastCount = min(3, size - 1)
+        val removeLastCount = min(5, size - 1)
         if (removeLastCount < 0) throw Exception("Deck is empty")
         val lastN = db().flash().getLastN(id, removeLastCount)
         return db().card().getAll(id)
