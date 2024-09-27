@@ -23,7 +23,7 @@ interface CardDao {
     fun getByID(id: Int): Card?
     @Query("SELECT * FROM card WHERE deck_id = :deck_id AND front = :front")
     fun getByFront(deck_id: Int, front: String): Card?
-    @Query("SELECT * FROM card WHERE deck_id = :deck_id ORDER BY card.front")
+    @Query("SELECT * FROM card WHERE deck_id = :deck_id ORDER BY card.created_at DESC")
     fun getAll(deck_id: Int): List<Card>
     @Query("SELECT COUNT(*) FROM card WHERE deck_id = :deck_id")
     fun count(deck_id: Int): Int
