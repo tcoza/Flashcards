@@ -2,6 +2,7 @@ package com.flashcards
 
 import android.content.Intent
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,17 +27,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import com.flashcards.ui.theme.FlashcardsTheme
+import java.util.Locale
 
-class CardActivity : ComponentActivity() {
+class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     companion object {
         const val DECK_ID_INT = "DECK_ID"
     }
 
     var deck: Deck = Deck.dummy
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
         setContent { FlashcardsTheme { Content() } }
+        tts = TextToSpeech(this, this)
     }
 
     override fun onPause() {
@@ -67,6 +71,7 @@ class CardActivity : ComponentActivity() {
         val showFront = remember { mutableStateOf(true) }
         val showBack = remember { mutableStateOf(true) }
         fun cardDone() = showFront.value && showBack.value
+        fun speakHintOrFront() = speak(card.hint ?: card.front)
         fun nextCard() {
             val pair = deck.getRandomCard()
             card = pair.first
@@ -76,11 +81,15 @@ class CardActivity : ComponentActivity() {
             showBack.value = this.showBack
             stopwatch.reset()
             stopwatch.start()
+            if (!this.showBack) speakHintOrFront()
         }
         if (!isPreview()) {
             if (deck.size == 0) { finish(); return }
             LaunchedEffect(Unit) { nextCard() }
             if (db().card().getByID(card.id) == null) nextCard()
+        }
+        LaunchedEffect(showFront.value) {
+            if (showFront.value) speakHintOrFront()
         }
         if (cardDone() && stopwatch.isRunning) stopwatch.pause()
 
@@ -185,6 +194,38 @@ class CardActivity : ComponentActivity() {
                 fontSize = buttonFontSize,
                 modifier = Modifier.hideIf(cardDone()))
         }
+    }
+
+
+    private lateinit var tts: TextToSpeech
+    private var ttsInitd: Boolean = false
+
+    override fun onInit(status: Int) {
+        if (status != TextToSpeech.SUCCESS) {
+            Log.e("TTS", "Initialization failed")
+            return
+        }
+
+        val result = tts.setLanguage(Locale.JAPANESE)
+        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+            Log.e("TTS", "Japanese language not supported")
+            return
+        }
+
+        ttsInitd = true
+    }
+
+    private fun speak(text: String) {
+        if (!ttsInitd) { Log.e("TTS", "TTS not initialized"); return; }
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+    }
+
+    override fun onDestroy() {
+        if (::tts.isInitialized) {
+            tts.stop()
+            tts.shutdown()
+        }
+        super.onDestroy()
     }
 }
 
