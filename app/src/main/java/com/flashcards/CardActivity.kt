@@ -34,10 +34,6 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
-    companion object {
-        const val DECK_ID_INT = "DECK_ID"
-    }
-
     var deck: Deck = Deck.dummy
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,8 +138,8 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 onClick = {
                     if (!cardDone()) return@Button
                     Intent(this@CardActivity, EditCardActivity::class.java).apply {
-                        putExtra(EditCardActivity.DECK_ID_INT, deck.id)
-                        putExtra(EditCardActivity.CARD_ID_INT, card.id)
+                        putExtra(DECK_ID_INT, deck.id)
+                        putExtra(CARD_ID_INT, card.id)
                         this@CardActivity.startActivity(this)
                     }
                 }

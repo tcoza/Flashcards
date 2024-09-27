@@ -26,11 +26,6 @@ import androidx.compose.ui.unit.*
 import com.flashcards.ui.theme.FlashcardsTheme
 
 class EditCardActivity : ComponentActivity() {
-    companion object {
-        const val DECK_ID_INT = "DECK_ID"
-        const val CARD_ID_INT = "CARD_ID"
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val deck_id = (intent?.extras?.getInt(DECK_ID_INT))!!

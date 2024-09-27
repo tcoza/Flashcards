@@ -71,12 +71,11 @@ class MainActivity : ComponentActivity() {
     @Composable
     @Preview(showBackground = true)
     fun Content() {
-        val scrollState = rememberScrollState()
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(8.dp)
-                .verticalScroll(scrollState)
+                .verticalScroll(rememberScrollState())
         ) {
             val selected = remember { mutableStateOf(-1) }
             for (index in decks.indices) {
@@ -112,7 +111,7 @@ class MainActivity : ComponentActivity() {
             .background(Color(0xFF9B86FC))
             .clickable {
                 Intent(this@MainActivity, CardActivity::class.java).apply {
-                    putExtra(CardActivity.DECK_ID_INT, deck.id)
+                    putExtra(DECK_ID_INT, deck.id)
                     this@MainActivity.startActivity(this)
                 }
             }
@@ -135,9 +134,16 @@ class MainActivity : ComponentActivity() {
                 Row(Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SmallButton("+ Add Cards") {
+                    SmallButton("+", Color(0xFF11BB22)) {
                         Intent(this@MainActivity, EditCardActivity::class.java).apply {
-                            putExtra(EditCardActivity.DECK_ID_INT, deck.id)
+                            putExtra(DECK_ID_INT, deck.id)
+                            this@MainActivity.startActivity(this)
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    SmallButton("Cards...") {
+                        Intent(this@MainActivity, CardsActivity::class.java).apply {
+                            putExtra(DECK_ID_INT, deck.id)
                             this@MainActivity.startActivity(this)
                         }
                     }
@@ -152,7 +158,7 @@ class MainActivity : ComponentActivity() {
                         saveFileLauncher.launch("${deck.name}.txt")
                     }
                     Spacer(Modifier.width(8.dp))
-                    SmallButton("Delete", Color(0xFFBB1122)) {
+                    SmallButton("✖", Color(0xFFBB1122)) {
                         AlertDialog.Builder(this@MainActivity).apply {
                             setMessage("Delete ${deck.name}?")
                             setPositiveButton("Yes") { _, _ ->

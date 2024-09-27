@@ -7,6 +7,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalInspectionMode
 
+// Intent extras
+const val DECK_ID_INT = "DECK_ID"
+const val CARD_ID_INT = "CARD_ID"
+
 fun Modifier.hideIf(condition: Boolean) = this.alpha(if (condition) 0f else 1f)
 @Composable fun isPreview() = LocalInspectionMode.current
 fun Context.showToast(text: String, duration: Int = Toast.LENGTH_SHORT) = Toast.makeText(this, text, duration).show()
