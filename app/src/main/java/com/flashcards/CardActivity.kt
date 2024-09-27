@@ -1,13 +1,12 @@
 package com.flashcards
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -34,6 +33,12 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
+    companion object {
+        const val TOTAL_FLASH_INT = "TOTAL_FLASH"
+        const val ACCURATE_FLASH_INT = "ACCURATE_FLASH"
+        const val ACCURATE_AVG_TIME_LONG = "ACCURATE_AVG_TIME"
+    }
+
     var deck: Deck = Deck.dummy
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +65,8 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     var card by mutableStateOf(Card.dummy)
     var showBack  = false
+
+    val flashes = mutableListOf<Flash>()
 
     @Preview
     @Composable
@@ -169,7 +176,11 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                             System.currentTimeMillis(),
                             this@CardActivity.showBack,
                             stopwatch.getElapsedTimeMillis(),
-                            value).apply { Log.d("flash", this.toString()) })
+                            value)
+                            .apply {
+                                Log.d("flash", this.toString())
+                                flashes.add(this)
+                            })
                         nextCard()
                     },
                         colors = ButtonDefaults.buttonColors(containerColor = color),
@@ -196,6 +207,16 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        setResult(Activity.RESULT_OK, Intent().apply {
+            putExtra(TOTAL_FLASH_INT, flashes.size)
+            val correct = flashes.filter { it.isCorrect }
+            putExtra(ACCURATE_FLASH_INT, correct.size)
+            putExtra(ACCURATE_AVG_TIME_LONG, correct.map { it.timeElapsed }.average().toLong())
+        })
+        super.onBackPressed()
+    }
 
     private lateinit var tts: TextToSpeech
     private var ttsInitd: Boolean = false

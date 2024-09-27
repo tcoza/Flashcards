@@ -1,9 +1,11 @@
 package com.flashcards
 
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -36,6 +38,7 @@ import com.flashcards.ui.theme.FlashcardsTheme
 class MainActivity : ComponentActivity() {
     private lateinit var openFileLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var saveFileLauncher: ActivityResultLauncher<String>
+    private lateinit var cardActivityLauncher: ActivityResultLauncher<Intent>
     private var deck: Deck? = null      // Argument to above
 
     val MIME_TYPE = "text/plain"
@@ -47,7 +50,7 @@ class MainActivity : ComponentActivity() {
         openFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
             if (deck == null) return@registerForActivityResult
             contentResolver.openInputStream(uri)!!.use {
-                this.showToast("Imported ${deck?.import(it)} cards")
+                showToast("Imported ${deck?.import(it)} cards")
             }
         }}
         saveFileLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(MIME_TYPE)) {it?.let { uri ->
@@ -55,9 +58,19 @@ class MainActivity : ComponentActivity() {
             contentResolver.openOutputStream(uri)!!.use {
                 deck!!.export(it)
                 val count = db().card().count(deck!!.id)
-                this.showToast("Exported ${count} cards")
+                showToast("Exported ${count} cards")
             }
         }}
+        cardActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (it.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            if (it.data == null) return@registerForActivityResult
+            val total = it.data?.getIntExtra(CardActivity.TOTAL_FLASH_INT, 0)!!
+            val accurate = it.data?.getIntExtra(CardActivity.ACCURATE_FLASH_INT, 0)!!
+            val avgTime = it.data?.getLongExtra(CardActivity.ACCURATE_AVG_TIME_LONG, 0)!! / 1000.0
+            showToast(
+                "$accurate/$total (${accurate*100/total}%) ${String.format("%.1f", avgTime)} s/acc card",
+                Toast.LENGTH_LONG)
+        }
     }
 
     override fun onResume() {
@@ -110,10 +123,10 @@ class MainActivity : ComponentActivity() {
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xFF9B86FC))
             .clickable {
-                Intent(this@MainActivity, CardActivity::class.java).apply {
-                    putExtra(DECK_ID_INT, deck.id)
-                    this@MainActivity.startActivity(this)
-                }
+                cardActivityLauncher.launch(
+                    Intent(this@MainActivity, CardActivity::class.java).apply {
+                        putExtra(DECK_ID_INT, deck.id)
+                    })
             }
             .padding(16.dp)
         ) {
