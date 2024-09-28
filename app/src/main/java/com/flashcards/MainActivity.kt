@@ -78,12 +78,12 @@ class MainActivity : ComponentActivity() {
                 Application.instance.openDatabase()
                 refreshDecks()
             }
-
         }}
         cardActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode != Activity.RESULT_OK) return@registerForActivityResult
             if (it.data == null) return@registerForActivityResult
             val total = it.data?.getIntExtra(CardActivity.TOTAL_FLASH_INT, 0)!!
+            if (total == 0) return@registerForActivityResult
             val accurate = it.data?.getIntExtra(CardActivity.ACCURATE_FLASH_INT, 0)!!
             val avgTime = it.data?.getLongExtra(CardActivity.ACCURATE_AVG_TIME_LONG, 0)!! / 1000.0
             showToast(
