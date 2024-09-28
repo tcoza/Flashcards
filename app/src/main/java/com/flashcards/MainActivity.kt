@@ -12,19 +12,13 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,32 +28,57 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flashcards.ui.theme.FlashcardsTheme
+import java.io.FileInputStream
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
-    private lateinit var openFileLauncher: ActivityResultLauncher<Array<String>>
-    private lateinit var saveFileLauncher: ActivityResultLauncher<String>
+    private lateinit var exportDeckLauncher: ActivityResultLauncher<String>
+    private lateinit var importDeckLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var cardActivityLauncher: ActivityResultLauncher<Intent>
+    private lateinit var backupDatabaseLauncher: ActivityResultLauncher<String>
+    private lateinit var restoreDatabaseLauncher: ActivityResultLauncher<Array<String>>
     private var deck: Deck? = null      // Argument to above
 
-    val MIME_TYPE = "text/plain"
+    val EXPORT_MIME_TYPE = "text/plain"
+    val DATABASE_MIME_TYPE = "application/x-sqlite3"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { FlashcardsTheme { Content() } }
+        setContent { FlashcardsTheme { Scaffold() } }
 
-        openFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
+        importDeckLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
             if (deck == null) return@registerForActivityResult
             contentResolver.openInputStream(uri)!!.use {
                 showToast("Imported ${deck?.import(it)} cards")
             }
         }}
-        saveFileLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(MIME_TYPE)) {it?.let { uri ->
+        exportDeckLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(EXPORT_MIME_TYPE)) {it?.let { uri ->
             if (deck == null) return@registerForActivityResult
             contentResolver.openOutputStream(uri)!!.use {
                 deck!!.export(it)
                 val count = db().card().count(deck!!.id)
                 showToast("Exported ${count} cards")
             }
+        }}
+        backupDatabaseLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(DATABASE_MIME_TYPE)) {it?.let { uri ->
+            contentResolver.openOutputStream(uri)!!.use { output ->
+                FileInputStream(getDatabasePath(AppDatabase.DB_NAME)).use { input ->
+                    input.copyTo(output) } }
+            showToast("Success!")
+        }}
+        restoreDatabaseLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
+            try {
+                db().close()
+                contentResolver.openInputStream(uri)!!.use { input ->
+                    FileOutputStream(getDatabasePath(AppDatabase.DB_NAME)).use { output ->
+                        input.copyTo(output) } }
+                showToast("Success!")
+            }
+            finally {
+                Application.instance.openDatabase()
+                refreshDecks()
+            }
+
         }}
         cardActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode != Activity.RESULT_OK) return@registerForActivityResult
@@ -75,18 +94,40 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        refreshDecks()
+    }
+
+    fun refreshDecks() {
         decks.clear()
         decks.addAll(db().deck().getAll())
     }
 
     var decks = mutableStateListOf<Deck>()
 
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun Scaffold() {
+        Scaffold(
+            topBar = { TopBar() },
+            content = { Content(it) },
+            floatingActionButton = {
+                Button(onClick = {
+                    InputBox("Enter deck name:") {
+                        var deck = Deck(0, it ?: return@InputBox)
+                        deck = deck.copy(id = db().deck().insert(deck).toInt())
+                        decks.add(deck)
+                    }
+                }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBB86FC))
+                ) { Text("+ New deck") }})
+    }
+
     @Composable
     @Preview(showBackground = true)
-    fun Content() {
+    fun Content(paddingValues: PaddingValues = PaddingValues(0.dp)) {
         Column(
             Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(8.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -95,23 +136,30 @@ class MainActivity : ComponentActivity() {
                 DeckRow(index, selected)
                 Spacer(Modifier.height(8.dp))
             }
-            Column(Modifier
-                .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFFBB86FC))
-                .clickable {
-                    InputBox("Enter deck name:") {
-                        var deck = Deck(0, it ?: return@InputBox)
-                        deck = deck.copy(id = db().deck().insert(deck).toInt())
-                        decks.add(deck)
+        }
+    }
+    
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun TopBar() {
+        var expanded by remember { mutableStateOf(false) }
+        TopAppBar(
+            title = { Text("Flashcards") },
+            actions = {
+                Box {
+                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "More actions") }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem({ Text("Backup database")}, onClick = {
+                            expanded = false; backupDatabaseLauncher.launch("${AppDatabase.DB_NAME}.db") })
+                        DropdownMenuItem({ Text("Restore database")}, onClick = {
+                            expanded = false; restoreDatabaseLauncher.launch(arrayOf("*/*")) })
                     }
                 }
-                .padding(16.dp)
-            ) {
-                Text("+ New deck")
             }
-        }
+        )
     }
 
     @Composable
@@ -163,12 +211,12 @@ class MainActivity : ComponentActivity() {
                     Spacer(Modifier.weight(1f))
                     SmallButton("Import") {
                         this@MainActivity.deck = deck
-                        openFileLauncher.launch(arrayOf(MIME_TYPE))
+                        importDeckLauncher.launch(arrayOf(EXPORT_MIME_TYPE))
                     }
                     Spacer(Modifier.width(8.dp))
                     SmallButton("Export") {
                         this@MainActivity.deck = deck
-                        saveFileLauncher.launch("${deck.name}.txt")
+                        exportDeckLauncher.launch("${deck.name}.txt")
                     }
                     Spacer(Modifier.width(8.dp))
                     SmallButton("✖", Color(0xFFBB1122)) {

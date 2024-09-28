@@ -8,6 +8,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun deck(): DeckDao
     abstract fun card(): CardDao
     abstract fun flash(): FlashDao
+
+    companion object {
+        const val DB_NAME = "database"
+    }
 }
 
 @Dao
