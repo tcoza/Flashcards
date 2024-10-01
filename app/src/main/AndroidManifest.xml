@@ -22,7 +22,8 @@
             android:name=".CardsActivity"
             android:exported="false"
             android:label="@string/title_activity_cards"
-            android:theme="@style/Theme.Flashcards" />
+            android:theme="@style/Theme.Flashcards"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".EditCardActivity"
             android:exported="false"

@@ -41,30 +41,13 @@ import java.lang.NumberFormatException
 import java.util.Locale
 
 class DeckActivity : ComponentActivity() {
-    private lateinit var exportDeckLauncher: ActivityResultLauncher<String>
-    private lateinit var importDeckLauncher: ActivityResultLauncher<Array<String>>
     private var deck: Deck = Deck.dummy      // Argument to above
-
-    val EXPORT_MIME_TYPE = "text/plain"
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.getIntExtra(DECK_ID_INT, -1))!!
         setContent { FlashcardsTheme { Scaffold(topBar = { TopBar() }, content = { Content(it) }) } }
-
-        importDeckLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
-            contentResolver.openInputStream(uri)!!.use {
-                showToast("Imported ${deck.import(it)} cards")
-            }
-        }}
-        exportDeckLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(EXPORT_MIME_TYPE)) {it?.let { uri ->
-            contentResolver.openOutputStream(uri)!!.use {
-                deck.export(it)
-                val count = db().card().count(deck.id)
-                showToast("Exported ${count} cards")
-            }
-        }}
     }
 
     fun getLocales() = sequence {
@@ -192,12 +175,6 @@ class DeckActivity : ComponentActivity() {
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
-                        DropdownMenuItem({ Text("Import cards")}, onClick = {
-                            expanded = false; importDeckLauncher.launch(arrayOf(EXPORT_MIME_TYPE))
-                        })
-                        DropdownMenuItem({ Text("Export cards")}, onClick = {
-                            expanded = false; exportDeckLauncher.launch("${deck.name}.txt")
-                        })
                     }
                 }
             }
