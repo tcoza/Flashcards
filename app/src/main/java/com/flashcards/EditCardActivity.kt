@@ -31,25 +31,26 @@ class EditCardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val deck_id = (intent?.extras?.getInt(DECK_ID_INT))!!
-        deck = db().deck().getByID(deck_id)!!
+        deck.value = db().deck().getByID(deck_id)!!
         val card_id = intent?.extras?.getInt(CARD_ID_INT, -1) ?: -1
         card = if (card_id == -1) null else db().card().getByID(card_id)!!
         setContent { FlashcardsTheme { Content() } }
     }
 
-    var deck: Deck = Deck.dummy
+    var deck = mutableStateOf(Deck.dummy)
     var card: Card? = Card.dummy
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     @Preview(showBackground = true)
     fun Content() {
+        val decks = db().deck().getAll().map { Pair(it, it.name) }
         var isActive by remember { mutableStateOf(card?.isActive ?: false) }
         var front by remember { mutableStateOf((card?.front).emptyIfNull()) }
         var back by remember { mutableStateOf((card?.back).emptyIfNull()) }
         var hint by remember { mutableStateOf((card?.hint).emptyIfNull()) }
-        val dupFront = db().card().getByFront(deck.id, front)?.let { it.id != card?.id } ?: false
-        val dupBack = db().card().getByBack(deck.id, back)?.let { it.id != card?.id } ?: false
+        val dupFront = db().card().getByFront(deck.value.id, front)?.let { it.id != card?.id } ?: false
+        val dupBack = db().card().getByBack(deck.value.id, back)?.let { it.id != card?.id } ?: false
         val errorColors = TextFieldDefaults.outlinedTextFieldColors(
             focusedBorderColor = Color.Red,
             unfocusedBorderColor = Color.Red
@@ -61,13 +62,16 @@ class EditCardActivity : ComponentActivity() {
             Modifier
                 .fillMaxSize()
                 .padding(24.dp, 0.dp),
-            verticalArrangement = Arrangement.Center) {
-            Text("Deck: ${deck.name}", fontSize = 24.sp)
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spinner("Deck", decks, deck)
             Spacer(Modifier.height(16.dp))
             OutlinedTextField(
                 label = { Text("Front") },
                 value = front, onValueChange = { front = it },
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
                 colors = if (dupFront) errorColors else TextFieldDefaults.outlinedTextFieldColors())
             Spacer(Modifier.height(16.dp))
             OutlinedTextField(
@@ -109,7 +113,7 @@ class EditCardActivity : ComponentActivity() {
                 Button(onClick = {
                         if (card == null) {
                             db().card().insert(
-                                Card(0, deck.id, isActive,
+                                Card(0, deck.value.id, isActive,
                                 front, back, hint.nullIfEmpty())
                             )
                             front = ""; back = ""; hint = ""
@@ -117,6 +121,7 @@ class EditCardActivity : ComponentActivity() {
                         }
                         else {
                             db().card().update(card!!.copy(
+                                deckID = deck.value.id,
                                 isActive = isActive,
                                 front = front,
                                 back = back,
