@@ -179,15 +179,15 @@ class MainActivity : ComponentActivity() {
                 Row(Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SmallButton("Options") {
-                        Intent(this@MainActivity, DeckActivity::class.java).apply {
+                    SmallButton("View Cards") {
+                        Intent(this@MainActivity, CardsActivity::class.java).apply {
                             putExtra(DECK_ID_INT, deck.id)
                             this@MainActivity.startActivity(this)
                         }
                     }
                     Spacer(Modifier.width(8.dp))
-                    SmallButton("Cards...") {
-                        Intent(this@MainActivity, CardsActivity::class.java).apply {
+                    SmallButton("Options") {
+                        Intent(this@MainActivity, DeckActivity::class.java).apply {
                             putExtra(DECK_ID_INT, deck.id)
                             this@MainActivity.startActivity(this)
                         }
