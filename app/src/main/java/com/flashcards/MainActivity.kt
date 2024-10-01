@@ -27,39 +27,23 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.flashcards.database.AppDatabase
+import com.flashcards.database.Deck
 import com.flashcards.ui.theme.FlashcardsTheme
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
-    private lateinit var exportDeckLauncher: ActivityResultLauncher<String>
-    private lateinit var importDeckLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var cardActivityLauncher: ActivityResultLauncher<Intent>
     private lateinit var backupDatabaseLauncher: ActivityResultLauncher<String>
     private lateinit var restoreDatabaseLauncher: ActivityResultLauncher<Array<String>>
-    private var deck: Deck? = null      // Argument to above
 
-    val EXPORT_MIME_TYPE = "text/plain"
     val DATABASE_MIME_TYPE = "application/x-sqlite3"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { FlashcardsTheme { Scaffold() } }
 
-        importDeckLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
-            if (deck == null) return@registerForActivityResult
-            contentResolver.openInputStream(uri)!!.use {
-                showToast("Imported ${deck?.import(it)} cards")
-            }
-        }}
-        exportDeckLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(EXPORT_MIME_TYPE)) {it?.let { uri ->
-            if (deck == null) return@registerForActivityResult
-            contentResolver.openOutputStream(uri)!!.use {
-                deck!!.export(it)
-                val count = db().card().count(deck!!.id)
-                showToast("Exported ${count} cards")
-            }
-        }}
         backupDatabaseLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument(DATABASE_MIME_TYPE)) {it?.let { uri ->
             contentResolver.openOutputStream(uri)!!.use { output ->
                 FileInputStream(getDatabasePath(AppDatabase.DB_NAME)).use { input ->
@@ -82,10 +66,10 @@ class MainActivity : ComponentActivity() {
         cardActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode != Activity.RESULT_OK) return@registerForActivityResult
             if (it.data == null) return@registerForActivityResult
-            val total = it.data?.getIntExtra(CardActivity.TOTAL_FLASH_INT, 0)!!
+            val total = it.data?.getIntExtra(FlashActivity.TOTAL_FLASH_INT, 0)!!
             if (total == 0) return@registerForActivityResult
-            val accurate = it.data?.getIntExtra(CardActivity.ACCURATE_FLASH_INT, 0)!!
-            val avgTime = it.data?.getLongExtra(CardActivity.ACCURATE_AVG_TIME_LONG, 0)!! / 1000.0
+            val accurate = it.data?.getIntExtra(FlashActivity.ACCURATE_FLASH_INT, 0)!!
+            val avgTime = it.data?.getLongExtra(FlashActivity.ACCURATE_AVG_TIME_LONG, 0)!! / 1000.0
             showToast(
                 "$accurate/$total (${accurate*100/total}%) ${String.format("%.1f", avgTime)} s/acc card",
                 Toast.LENGTH_LONG)
@@ -172,7 +156,7 @@ class MainActivity : ComponentActivity() {
             .background(Color(0xFF9B86FC))
             .clickable {
                 cardActivityLauncher.launch(
-                    Intent(this@MainActivity, CardActivity::class.java).apply {
+                    Intent(this@MainActivity, FlashActivity::class.java).apply {
                         putExtra(DECK_ID_INT, deck.id)
                     })
             }
@@ -195,8 +179,8 @@ class MainActivity : ComponentActivity() {
                 Row(Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SmallButton("+", Color(0xFF11BB22)) {
-                        Intent(this@MainActivity, EditCardActivity::class.java).apply {
+                    SmallButton("Options") {
+                        Intent(this@MainActivity, DeckActivity::class.java).apply {
                             putExtra(DECK_ID_INT, deck.id)
                             this@MainActivity.startActivity(this)
                         }
@@ -209,27 +193,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    SmallButton("Import") {
-                        this@MainActivity.deck = deck
-                        importDeckLauncher.launch(arrayOf(EXPORT_MIME_TYPE))
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    SmallButton("Export") {
-                        this@MainActivity.deck = deck
-                        exportDeckLauncher.launch("${deck.name}.txt")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    SmallButton("✖", Color(0xFFBB1122)) {
-                        AlertDialog.Builder(this@MainActivity).apply {
-                            setMessage("Delete ${deck.name}?")
-                            setPositiveButton("Yes") { _, _ ->
-                                db().deck().delete(deck)
-                                decks.remove(deck)
-                                selected.value = -1
-                            }
-                            setNegativeButton("No") { dialog, _ -> dialog.dismiss() }
-                            create()
-                            show()
+                    SmallButton("+ Add cards", Color(0xFF11BB22)) {
+                        Intent(this@MainActivity, EditCardActivity::class.java).apply {
+                            putExtra(DECK_ID_INT, deck.id)
+                            this@MainActivity.startActivity(this)
                         }
                     }
                 }

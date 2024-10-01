@@ -1,18 +1,11 @@
-package com.flashcards
+package com.flashcards.database
 
-import androidx.room.Database
-import androidx.room.*
-
-@Database(entities = [Deck::class, Card::class, Flash::class], version = 1)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun deck(): DeckDao
-    abstract fun card(): CardDao
-    abstract fun flash(): FlashDao
-
-    companion object {
-        const val DB_NAME = "database"
-    }
-}
+import androidx.room.ColumnInfo
+import androidx.room.Dao
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.PrimaryKey
+import androidx.room.Query
 
 @Dao
 interface FlashDao {
@@ -39,7 +32,8 @@ interface FlashDao {
             "LIMIT :n")
     fun getLastN(deck_id: Int, n: Int): List<Flash>
 
-    @Insert fun insert(dbo: Flash)
+    @Insert
+    fun insert(dbo: Flash)
 }
 
 @Entity(tableName = "flash")

@@ -1,7 +1,7 @@
 package com.flashcards
 
-import android.content.Context
 import androidx.room.Room
+import com.flashcards.database.AppDatabase
 
 class Application : android.app.Application() {
     companion object {
@@ -18,15 +18,7 @@ class Application : android.app.Application() {
         openDatabase()
     }
 
-    fun openDatabase() {
-        database =
-            Room.databaseBuilder(
-                applicationContext,
-                AppDatabase::class.java,
-                AppDatabase.DB_NAME)
-                .allowMainThreadQueries()
-                .build()
-    }
+    fun openDatabase() { database = AppDatabase.build(applicationContext) }
 }
 
 fun db() = Application.instance.database

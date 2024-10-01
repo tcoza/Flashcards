@@ -1,6 +1,7 @@
 package com.flashcards
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -25,14 +26,17 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import com.flashcards.database.Deck
+import com.flashcards.database.Flash
 import com.flashcards.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.Closeable
 import java.util.Locale
 
-class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
+class FlashActivity : ComponentActivity() {
     companion object {
         const val TOTAL_FLASH_INT = "TOTAL_FLASH"
         const val ACCURATE_FLASH_INT = "ACCURATE_FLASH"
@@ -44,8 +48,10 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
+        if (deck.readFront) frontTTS = MyTTS(this, deck.frontLocale)
+        if (deck.readBack) backTTS = MyTTS(this, deck.backLocale)
+        if (deck.useHintAsPronunciation) hintTTS = MyTTS(this, deck.hintLocale)
         setContent { FlashcardsTheme { Content() } }
-        tts = TextToSpeech(this, this, "com.google.android.tts")
     }
 
     override fun onPause() {
@@ -57,13 +63,13 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onResume() {
         super.onResume()
         if (resumeStopwatch) stopwatch.start()
-        card = db().card().getByID(card.id) ?: Card.dummy
+        card = db().card().getByID(card.id) ?: com.flashcards.database.Card.dummy
     }
 
     val stopwatch = Stopwatch()
     var resumeStopwatch = false
 
-    var card by mutableStateOf(Card.dummy)
+    var card by mutableStateOf(com.flashcards.database.Card.dummy)
     var showBack  = false
 
     val flashes = mutableListOf<Flash>()
@@ -78,7 +84,7 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         val showFront = remember { mutableStateOf(true) }
         val showBack = remember { mutableStateOf(true) }
         fun cardDone() = showFront.value && showBack.value
-        fun speakHintOrFront() = speak(card.hint ?: card.front)
+
         fun nextCard() {
             val pair = deck.getRandomCard()
             card = pair.first
@@ -88,16 +94,15 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             showBack.value = this.showBack
             stopwatch.reset()
             stopwatch.start()
-            if (!this.showBack) speakHintOrFront()
+            if (this.showBack) speakBack() else speakFront()
         }
         if (!isPreview()) {
-            if (deck.size == 0) { finish(); return }
-            if (card === Card.dummy || db().card().getByID(card.id) == null)
+            if (db().card().countActive(deck.id) == 0) { finish(); return }
+            if (card === com.flashcards.database.Card.dummy || db().card().getByID(card.id) == null)
                 nextCard()
         }
-        LaunchedEffect(showFront.value) {
-            if (showFront.value) speakHintOrFront()
-        }
+        LaunchedEffect(showFront.value) { if (showFront.value) speakFront() }
+        LaunchedEffect(showBack.value) { if (showBack.value) speakBack() }
         if (cardDone() && stopwatch.isRunning) stopwatch.pause()
 
         Column(
@@ -144,10 +149,10 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             Button(modifier = Modifier.hideIf(!cardDone()),
                 onClick = {
                     if (!cardDone()) return@Button
-                    Intent(this@CardActivity, EditCardActivity::class.java).apply {
+                    Intent(this@FlashActivity, EditCardActivity::class.java).apply {
                         putExtra(DECK_ID_INT, deck.id)
                         putExtra(CARD_ID_INT, card.id)
-                        this@CardActivity.startActivity(this)
+                        this@FlashActivity.startActivity(this)
                     }
                 }
             ) {
@@ -171,10 +176,11 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     val text = if (value) "✔" else "✘"
                     Button({
                         if (!cardDone()) return@Button
-                        db().flash().insert(Flash(0,
+                        db().flash().insert(
+                            Flash(0,
                             card.id,
                             System.currentTimeMillis(),
-                            this@CardActivity.showBack,
+                            this@FlashActivity.showBack,
                             stopwatch.getElapsedTimeMillis(),
                             value)
                             .apply {
@@ -218,8 +224,36 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         super.onBackPressed()
     }
 
-    private lateinit var tts: TextToSpeech
+    private var frontTTS: MyTTS? = null
+    private var hintTTS: MyTTS? = null
+    private var backTTS: MyTTS? = null
+
+    fun speakBack() = backTTS?.speak(card.back)
+    fun speakFront() {
+        if (frontTTS == null) return
+        if (hintTTS != null && card.hint != null) hintTTS?.speak(card.hint!!)
+        else frontTTS?.speak(card.front)
+    }
+
+    override fun onDestroy() {
+        frontTTS?.close()
+        backTTS?.close()
+        hintTTS?.close()
+        super.onDestroy()
+    }
+}
+
+class MyTTS(context: Context, locale: String) : TextToSpeech.OnInitListener, Closeable {
+    private val tts: TextToSpeech
+    private val locale: Locale
     private var ttsInitd: Boolean = false
+
+    init {
+        tts = TextToSpeech(context, this, "com.google.android.tts")
+        this.locale =
+            Locale.getAvailableLocales().firstOrNull { it.toString() == locale }
+                ?: throw Exception("Invalid locale: '$locale'")
+    }
 
     override fun onInit(status: Int) {
         if (status != TextToSpeech.SUCCESS) {
@@ -227,16 +261,16 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             return
         }
 
-        val result = tts.setLanguage(Locale.JAPANESE)
+        val result = tts.setLanguage(locale)
         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-            Log.e("TTS", "Japanese language not supported")
+            Log.e("TTS", "Language not supported")
             return
         }
 
         ttsInitd = true
     }
 
-    private fun speak(text: String) {
+    public fun speak(text: String) {
         CoroutineScope(Dispatchers.Main).launch {
             var i = 0
             while (i++ < 10 && !ttsInitd) delay(100)
@@ -245,12 +279,8 @@ class CardActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    override fun onDestroy() {
-        if (::tts.isInitialized) {
-            tts.stop()
-            tts.shutdown()
-        }
-        super.onDestroy()
+    override fun close() {
+        tts.stop()
+        tts.shutdown()
     }
 }
-
