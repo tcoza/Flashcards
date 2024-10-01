@@ -230,9 +230,10 @@ class FlashActivity : ComponentActivity() {
     private var backTTS: MyTTS? = null
 
     fun speakBack() { backTTS?.speak(card.back) }
-    fun speakHint() { if (card.hint != null) hintTTS?.speak(card.hint!!) }
+    fun speakHint() { if (deck.readHint && card.hint != null) hintTTS?.speak(card.hint!!) }
     fun speakFront() {
-        if (deck.useHintAsPronunciation && card.hint != null) speakHint()
+        if (deck.useHintAsPronunciation && card.hint != null)
+            hintTTS!!.speak(card.hint!!)   // hintTTS should always be not null here
         else frontTTS?.speak(card.front)
     }
 
