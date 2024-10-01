@@ -50,7 +50,7 @@ class FlashActivity : ComponentActivity() {
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
         if (deck.readFront) frontTTS = MyTTS(this, deck.frontLocale)
         if (deck.readBack) backTTS = MyTTS(this, deck.backLocale)
-        if (deck.useHintAsPronunciation) hintTTS = MyTTS(this, deck.hintLocale)
+        if (deck.readHint || deck.useHintAsPronunciation) hintTTS = MyTTS(this, deck.hintLocale)
         setContent { FlashcardsTheme { Content() } }
     }
 
@@ -103,6 +103,7 @@ class FlashActivity : ComponentActivity() {
         }
         LaunchedEffect(showFront.value) { if (showFront.value) speakFront() }
         LaunchedEffect(showBack.value) { if (showBack.value) speakBack() }
+        LaunchedEffect(showHint.value) { if (showHint.value) speakHint() }
         if (cardDone() && stopwatch.isRunning) stopwatch.pause()
 
         Column(
@@ -228,10 +229,10 @@ class FlashActivity : ComponentActivity() {
     private var hintTTS: MyTTS? = null
     private var backTTS: MyTTS? = null
 
-    fun speakBack() = backTTS?.speak(card.back)
+    fun speakBack() { backTTS?.speak(card.back) }
+    fun speakHint() { if (card.hint != null) hintTTS?.speak(card.hint!!) }
     fun speakFront() {
-        if (frontTTS == null) return
-        if (hintTTS != null && card.hint != null) hintTTS?.speak(card.hint!!)
+        if (deck.useHintAsPronunciation && card.hint != null) speakHint()
         else frontTTS?.speak(card.front)
     }
 

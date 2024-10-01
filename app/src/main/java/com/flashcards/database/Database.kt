@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.Locale
 
-@Database(entities = [Deck::class, Card::class, Flash::class], version = 3)
+@Database(entities = [Deck::class, Card::class, Flash::class], version = 4)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun deck(): DeckDao
     abstract fun card(): CardDao
@@ -20,6 +20,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .allowMainThreadQueries()
                 .addMigrations(MIGRATION_1_2)
                 .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_3_4)
                 .build()
     }
 }
@@ -50,5 +51,11 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
 val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(database: SupportSQLiteDatabase) = database.run {
         addColumn("deck", "hint_locale", "TEXT", "''")
+    }
+}
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(database: SupportSQLiteDatabase) = database.run {
+        addColumn("deck", "read_hint", "INT", "0")
     }
 }

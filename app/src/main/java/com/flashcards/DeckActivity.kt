@@ -85,15 +85,16 @@ class DeckActivity : ComponentActivity() {
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(8.dp)
+                .padding(24.dp)
         ) {
             var name by remember { mutableStateOf(deck.name) }
             var readFront = remember { mutableStateOf(deck.readFront) }
             var readBack = remember { mutableStateOf(deck.readBack) }
-            var useHintAsPronunciation = remember { mutableStateOf(deck.useHintAsPronunciation) }
+            var readHint = remember { mutableStateOf(deck.readHint) }
             var frontLocale = remember { mutableStateOf(deck.frontLocale) }
             var backLocale = remember { mutableStateOf(deck.backLocale) }
             var hintLocale = remember { mutableStateOf(deck.hintLocale) }
+            var useHintAsPronunciation by remember { mutableStateOf(deck.useHintAsPronunciation) }
             var activateCardsPerDay by remember { mutableStateOf(deck.activateCardsPerDay) }
             OutlinedTextField(
                 value = name,
@@ -102,10 +103,11 @@ class DeckActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = TextStyle(fontSize = 32.sp)
             )
+            var fontSize = 20.sp
             @Composable
             fun LabeledSwitch(text: String, value: MutableState<Boolean>, lang: MutableState<String>) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("$text:", fontSize = 20.sp, modifier = Modifier.weight(1f))
+                    Text("$text:", fontSize = fontSize, modifier = Modifier.weight(1f))
                     Switch(checked = value.value, onCheckedChange = { value.value = it }, Modifier.weight(1f))
                     Spinner("Language",
                         getLocales().map { Pair(it.first.toString(), it.second) },
@@ -113,18 +115,21 @@ class DeckActivity : ComponentActivity() {
                 }
             }
             Spacer(Modifier.height(24.dp))
-            Text("Text-to-speech", fontSize = 20.sp)
+            Text("Text-to-speech", fontSize = fontSize)
             Spacer(Modifier.height(8.dp))
             LabeledSwitch("Front", readFront, frontLocale)
             Spacer(Modifier.height(4.dp))
+            LabeledSwitch("Hint", readHint, hintLocale)
+            Spacer(Modifier.height(4.dp))
             LabeledSwitch("Back", readBack, backLocale)
             Spacer(Modifier.height(4.dp))
-            LabeledSwitch("Hint*", useHintAsPronunciation, hintLocale)
-            Spacer(Modifier.height(4.dp))
-            Text("* Use hint as pronunciation for front")
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Hint as front pronunciation:", fontSize = fontSize)
+                Spacer(Modifier.weight(1f))
+                Switch(checked = useHintAsPronunciation, onCheckedChange = { useHintAsPronunciation = it })
+            }
             Spacer(Modifier.height(24.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                val fontSize = 20.sp
                 Text("Auto-activate ", fontSize = fontSize)
                 TextField(
                     value = activateCardsPerDay.toString(),
@@ -135,7 +140,7 @@ class DeckActivity : ComponentActivity() {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.size(64.dp, 56.dp)
                 )
-                Text(" cards every day", fontSize = fontSize)
+                Text(" cards/day", fontSize = fontSize)
             }
             Spacer(Modifier.height(24.dp))
             Row(Modifier.fillMaxWidth()) {
@@ -161,7 +166,8 @@ class DeckActivity : ComponentActivity() {
                         activateCardsPerDay = activateCardsPerDay,
                         readFront = readFront.value,
                         readBack = readBack.value,
-                        useHintAsPronunciation = useHintAsPronunciation.value,
+                        readHint = readHint.value,
+                        useHintAsPronunciation = useHintAsPronunciation,
                         frontLocale = frontLocale.value,
                         backLocale = backLocale.value,
                         hintLocale = hintLocale.value
