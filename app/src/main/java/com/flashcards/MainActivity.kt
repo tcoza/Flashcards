@@ -29,9 +29,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flashcards.database.AppDatabase
 import com.flashcards.database.Deck
+import com.flashcards.database.getStatsString
 import com.flashcards.ui.theme.FlashcardsTheme
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.TemporalUnit
 
 class MainActivity : ComponentActivity() {
     private lateinit var cardActivityLauncher: ActivityResultLauncher<Intent>
@@ -66,13 +71,7 @@ class MainActivity : ComponentActivity() {
         cardActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode != Activity.RESULT_OK) return@registerForActivityResult
             if (it.data == null) return@registerForActivityResult
-            val total = it.data?.getIntExtra(FlashActivity.TOTAL_FLASH_INT, 0)!!
-            if (total == 0) return@registerForActivityResult
-            val accurate = it.data?.getIntExtra(FlashActivity.ACCURATE_FLASH_INT, 0)!!
-            val avgTime = it.data?.getLongExtra(FlashActivity.ACCURATE_AVG_TIME_LONG, 0)!! / 1000.0
-            showToast(
-                "$accurate/$total (${accurate*100/total}%) ${String.format("%.1f", avgTime)} s/acc card",
-                Toast.LENGTH_LONG)
+            showToast(it.data?.getStringExtra(FlashActivity.STATS_STR) ?: return@registerForActivityResult, Toast.LENGTH_LONG)
         }
     }
 
@@ -175,6 +174,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
             if (isSelected) {
+                val todayStart = LocalDate.now().toEpochMilli()
+                val flashes = db().flash().getAllFromDeck(deck.id, todayStart)
+                if (flashes.any()) {
+                    Spacer(Modifier.height(12.dp))
+                    val showDialog = remember { mutableStateOf(false) }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Today:")
+                        Spacer(Modifier.weight(1f))
+                        Text(flashes.getStatsString())
+                        Spacer(Modifier.width(8.dp))
+                        SmallButton("...") { showDialog.value = true }
+                        StatsDialog(deck, showDialog)
+                    }
+                }
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -227,5 +240,33 @@ class MainActivity : ComponentActivity() {
             .setNegativeButton("Cancel") { _, _ -> callback(null) }
             .create()
             .show()
+    }
+
+    @Composable
+    fun StatsDialog(deck: Deck, show: MutableState<Boolean>) {
+        if (show.value) AlertDialog(
+            modifier = Modifier.heightIn(max = 512.dp),
+            title = { Text("Stats: ${deck.name}") },
+            onDismissRequest = { show.value = false },
+            confirmButton = {},
+            text = {
+                val firstTime = db().flash().getFirstOfDeck(deck.id)!!.createdAt
+                val minDate = Instant.ofEpochMilli(firstTime).atZone(ZoneId.systemDefault()).toLocalDate()
+                var date = LocalDate.now()
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    do {
+                        val since = date.toEpochMilli()
+                        val until = date.plusDays(1).toEpochMilli()
+                        val flashes = db().flash().getAllFromDeck(deck.id, since, until)
+                        if (!flashes.isEmpty())
+                            Row(Modifier.fillMaxWidth()) {
+                                Text("${date.dayOfMonth}/${date.monthValue}")
+                                Spacer(Modifier.weight(1f))
+                                Text(flashes.getStatsString())
+                            }
+                        date = date.minusDays(1)
+                    } while (!(date).isBefore(minDate))
+                }
+            })
     }
 }

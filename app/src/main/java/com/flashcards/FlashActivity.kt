@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import com.flashcards.database.Deck
 import com.flashcards.database.Flash
+import com.flashcards.database.getStatsString
 import com.flashcards.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,9 +39,7 @@ import java.util.Locale
 
 class FlashActivity : ComponentActivity() {
     companion object {
-        const val TOTAL_FLASH_INT = "TOTAL_FLASH"
-        const val ACCURATE_FLASH_INT = "ACCURATE_FLASH"
-        const val ACCURATE_AVG_TIME_LONG = "ACCURATE_AVG_TIME"
+        const val STATS_STR = "STATS"
     }
 
     var deck: Deck = Deck.dummy
@@ -217,10 +216,7 @@ class FlashActivity : ComponentActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         setResult(Activity.RESULT_OK, Intent().apply {
-            putExtra(TOTAL_FLASH_INT, flashes.size)
-            val correct = flashes.filter { it.isCorrect }
-            putExtra(ACCURATE_FLASH_INT, correct.size)
-            putExtra(ACCURATE_AVG_TIME_LONG, correct.map { it.timeElapsed }.average().toLong())
+            if (flashes.any()) putExtra(STATS_STR, flashes.getStatsString())
         })
         super.onBackPressed()
     }

@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
+import java.time.LocalDate
+import java.time.ZoneId
 
 // Intent extras
 const val DECK_ID_INT = "DECK_ID"
@@ -36,6 +38,8 @@ fun Context.showToast(text: String, duration: Int = Toast.LENGTH_SHORT) = Toast.
 
 fun String.nullIfEmpty() = if (this == "") null else this
 fun String?.emptyIfNull() = this ?: ""
+
+fun LocalDate.toEpochMilli() = atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
 fun <T> Iterable<T>.random() = this.elementAt((this.count() * Math.random()).toInt())
 fun <T, R: Comparable<R>> Iterable<T>.maxByOrRandom(selector: (T) -> R): T {
