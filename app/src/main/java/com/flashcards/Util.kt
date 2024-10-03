@@ -42,10 +42,12 @@ fun String?.emptyIfNull() = this ?: ""
 fun LocalDate.toEpochMilli() = atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
 fun <T> Iterable<T>.random() = this.elementAt((this.count() * Math.random()).toInt())
-fun <T, R: Comparable<R>> Iterable<T>.maxByOrRandom(selector: (T) -> R): T {
+fun <T, R: Comparable<R>> Iterable<T>.minByOrRandom(selector: (T) -> R): T = minOrMaxByOrRandom(selector, false)
+fun <T, R: Comparable<R>> Iterable<T>.maxByOrRandom(selector: (T) -> R): T = minOrMaxByOrRandom(selector, true)
+private fun <T, R: Comparable<R>> Iterable<T>.minOrMaxByOrRandom(selector: (T) -> R, max: Boolean): T {
     val values = this.map { Pair(it, selector.invoke(it)) }
-    val max = values.maxOf { it.second }
-    return values.filter { it.second == max }.random().first
+    val value = if (max) values.maxOf { it.second } else values.minOf { it.second }
+    return values.filter { it.second == value }.random().first
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

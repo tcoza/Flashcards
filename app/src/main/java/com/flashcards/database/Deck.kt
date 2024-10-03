@@ -4,12 +4,12 @@ import androidx.room.*
 import com.flashcards.db
 import com.flashcards.emptyIfNull
 import com.flashcards.maxByOrRandom
+import com.flashcards.minByOrRandom
 import com.flashcards.nullIfEmpty
 import java.io.*
 import java.lang.Integer.min
 import java.time.Instant
 import java.time.ZoneId
-import java.util.Date
 import java.util.Scanner
 import kotlin.math.ln
 import kotlin.math.pow
@@ -63,25 +63,30 @@ data class Deck(
         return db().card().getActive(id)
             .filter { !lastN.any { f -> it.id == f.cardID } }
             .map { listOf(Pair(it, false), Pair(it, true)) }
-            .flatten().maxByOrRandom { flashValueFunction(it.first, it.second) }
+            .flatten().minByOrRandom { flashValueFunction(it.first, it.second) }
     }
 
-    // Assumes there are flashes
     private fun flashValueFunction(card: Card, isBack: Boolean): Double {
         val ALPHA = 1 / Math.E
         val EXPECTED_TIME: Long = 5_000     // 5 seconds
 
+        // f should be positive, decreasing, with an asymptote at y=0
+        fun f(timeElapsed: Long) = 0.5.pow(timeElapsed.toDouble() / EXPECTED_TIME)
+        // g should be increasing, and g(0)=0
+        fun g(timeSince: Long) = ln(timeSince.toDouble() / EXPECTED_TIME + 1)
+
         var avgScore = 0.0
-        var finalFlash: Flash? = null
+        var last: Flash? = null
+        fun lastFlashTime() = last?.createdAt ?: card.createdAt
         for (flash in db().flash().getAllFromCard(card.id, isBack)) {
-            val score = if (!flash.isCorrect) 0.0
-                else 0.5.pow(flash.timeElapsed.toDouble() / EXPECTED_TIME)
+            val since = flash.createdAt - lastFlashTime()
+            val score = (if (flash.isCorrect) f(flash.timeElapsed) else 0.0) * g(since)
+
             // Average score will be near 0 for new cards
             avgScore = ALPHA * score + (1 - ALPHA) * avgScore
-            finalFlash = flash
+            last = flash
         }
-        val since = System.currentTimeMillis() - (finalFlash?.createdAt ?: 0)
-        return ln(since.toDouble()) * (avgScore - 1).pow(2) / avgScore
+        return avgScore / g(System.currentTimeMillis() - lastFlashTime())
     }
 
     private fun activateCardsIfDue() {
