@@ -49,7 +49,7 @@ data class Deck(
 
     fun export(stream: OutputStream) {
         PrintWriter(stream).use { out ->
-            db().card().getActive(id).forEach {
+            db().card().getAll(id).forEach {
                 out.println("${it.front}\t${it.back}\t${it.hint.emptyIfNull()}")
             }
         }
