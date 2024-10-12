@@ -54,6 +54,11 @@ interface CardDao {
             "LIMIT :n")
     fun getInactive(deck_id: Int, n: Int): List<Card>
 
+    @Query("SELECT * FROM card " +
+            "WHERE deck_id = :deck_id " +
+            "ORDER BY card.created_at DESC " +
+            "LIMIT 1")
+    fun getLast(deck_id: Int): Card?
 
 //    @Query("SELECT * FROM card " +
 //            "WHERE deck_id = :deck_id " +

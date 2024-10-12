@@ -12,6 +12,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,12 +52,17 @@ class EditCardActivity : ComponentActivity() {
         var hint by remember { mutableStateOf((card?.hint).emptyIfNull()) }
         val dupFront = db().card().getByFront(deck.value.id, front)?.let { it.id != card?.id } ?: false
         val dupBack = db().card().getByBack(deck.value.id, back)?.let { it.id != card?.id } ?: false
+
+        LaunchedEffect(deck.value) {
+            if (card != null) return@LaunchedEffect
+            isActive = db().card().getLast(deck.value.id)?.isActive ?: true
+        }
+
+        val focusRequester = FocusRequester()
         val errorColors = TextFieldDefaults.outlinedTextFieldColors(
             focusedBorderColor = Color.Red,
             unfocusedBorderColor = Color.Red
         )
-
-        val focusRequester = FocusRequester()
 
         Column (
             Modifier
