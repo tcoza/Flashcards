@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flashcards.database.AppDatabase
@@ -107,6 +108,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     @Preview(showBackground = true)
     fun Content(paddingValues: PaddingValues = PaddingValues(0.dp)) {
+        if (isPreview()) decks.add(Deck(0, "Expressions & Interjections & Other nonsense"))
         Column(
             Modifier
                 .fillMaxSize()
@@ -165,9 +167,10 @@ class MainActivity : ComponentActivity() {
             Row(Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(deck.name)
-                Spacer(modifier = Modifier.weight(1f))
-                Text("${db().card().count(deck.id)} cards")
+                Text(deck.name, modifier = Modifier.weight(1f).padding(end = 8.dp))
+                Text(if (!isPreview())
+                    "${db().card().countActive(deck.id)}/${db().card().count(deck.id)}"
+                    else "0/0", softWrap = false)
                 Spacer(Modifier.width(8.dp))
                 SmallButton(if (isSelected) "▲" else "▼") {
                     selected.value = if (isSelected) -1 else index
