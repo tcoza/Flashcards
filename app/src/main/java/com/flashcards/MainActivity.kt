@@ -121,6 +121,7 @@ class MainActivity : ComponentActivity() {
                 DeckRow(index, selected)
                 Spacer(Modifier.height(8.dp))
             }
+            Spacer(Modifier.height(64.dp))
         }
     }
     
