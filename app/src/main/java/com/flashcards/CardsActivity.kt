@@ -25,6 +25,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.flashcards.database.Card
@@ -73,6 +74,7 @@ class CardsActivity : ComponentActivity() {
     @Preview
     @Composable
     fun Content(paddingValues: PaddingValues = PaddingValues()) {
+        val showHint = LocalConfiguration.current.screenWidthDp >= 500
         Column(Modifier.padding(paddingValues).padding(16.dp), verticalArrangement = Arrangement.Bottom) {
             var searchString by remember { mutableStateOf("") }
             val preview = isPreview()   // Who knows...
@@ -90,6 +92,7 @@ class CardsActivity : ComponentActivity() {
                             .padding(8.dp)
                     ) {
                         Text("Front", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                        if (showHint) Text("Hint", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
                         Text("Back", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
                         Text("Active",
                             modifier = Modifier.width(56.dp),
@@ -110,7 +113,10 @@ class CardsActivity : ComponentActivity() {
                             }
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        for (item in arrayOf(card.front, card.back))
+                        val items =
+                            if (!showHint) arrayOf(card.front, card.back)
+                            else arrayOf(card.front, card.hint.emptyIfNull(), card.back)
+                        for (item in items)
                             Text(text = item, modifier = Modifier.weight(1f))
                         Checkbox(checked = card.isActive, modifier = Modifier.size(56.dp, 24.dp),
                             onCheckedChange = { checked ->
