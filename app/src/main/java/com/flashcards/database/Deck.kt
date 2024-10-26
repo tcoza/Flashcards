@@ -1,5 +1,6 @@
 package com.flashcards.database
 
+import androidx.compose.runtime.MutableState
 import androidx.room.*
 import com.flashcards.db
 import com.flashcards.emptyIfNull
@@ -56,15 +57,17 @@ data class Deck(
         }
     }
 
-    fun getRandomCard(): Pair<Card, Boolean> {
+    fun getRandomCard(value: MutableState<Double>? = null): Pair<Card, Boolean> {
         activateCardsIfDue()
         val removeLastCount = min(5, db().card().countActive(id) - 1)
         if (removeLastCount < 0) throw Exception("Deck is empty")
         val lastN = db().flash().getLastN(id, removeLastCount)
         return db().card().getActive(id)
-            .filter { !lastN.any { f -> it.id == f.cardID } }
             .map { listOf(Pair(it, false), Pair(it, true)) }
-            .flatten().minByOrRandom { flashValueFunction(it.first, it.second) }
+            .flatten().map { Pair(it, flashValueFunction(it.first, it.second)) }
+            .apply { value?.value = this.minOf { it.second } }
+            .filter { !lastN.any { f -> it.first.first.id == f.cardID } }
+            .minByOrRandom { it.second }.first
     }
 
     private fun flashValueFunction(card: Card, isBack: Boolean): Double {

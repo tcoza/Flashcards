@@ -79,13 +79,14 @@ class FlashActivity : ComponentActivity() {
         val fontSize = 64.sp
         val buttonFontSize = 24.sp
 
+        val progress = remember { mutableStateOf(0.0) }
         val showHint = remember { mutableStateOf(true) }
         val showFront = remember { mutableStateOf(true) }
         val showBack = remember { mutableStateOf(true) }
         fun cardDone() = showFront.value && showBack.value
 
         fun nextCard() {
-            val pair = deck.getRandomCard()
+            val pair = deck.getRandomCard(progress)
             card = pair.first
             this.showBack = pair.second
             showFront.value = !this.showBack
@@ -146,6 +147,10 @@ class FlashActivity : ComponentActivity() {
                 }
             }
 
+            LinearProgressIndicator(
+                progress = progress.value.toFloat(),
+                modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
             Button(modifier = Modifier.hideIf(!cardDone()),
                 onClick = {
                     if (!cardDone()) return@Button
