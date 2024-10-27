@@ -38,6 +38,12 @@ interface FlashDao {
     fun getLastN(deck_id: Int, n: Int): List<Flash>
 
     @Query("SELECT flash.* FROM flash " +
+            "JOIN card ON card_id = card.id " +
+            "WHERE deck_id = :deck_id " +
+            "AND flash.id > :flash_id")
+    fun getAfter(deck_id: Int, flash_id: Int): List<Flash>
+
+    @Query("SELECT flash.* FROM flash " +
             "JOIN card ON card.id = flash.card_id " +
             "WHERE deck_id = :deck_id " +
             "AND flash.created_at >= :since " +

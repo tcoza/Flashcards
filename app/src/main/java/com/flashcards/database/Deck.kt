@@ -13,6 +13,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Scanner
 import kotlin.math.ln
+import kotlin.math.max
 import kotlin.math.pow
 
 @Entity(tableName = "deck")
@@ -70,6 +71,9 @@ data class Deck(
             .minByOrRandom { it.second }.first
     }
 
+    // Map<(cardID, isBack), (value, lastFlashTime)>
+    @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, Pair<Double, Long>>()
+    @Ignore private var lastFlashInCacheID: Int = -1
     private fun flashValueFunction(card: Card, isBack: Boolean): Double {
         val ALPHA = 1 / Math.E
         val EXPECTED_TIME: Long = 5_000     // 5 seconds
@@ -79,18 +83,20 @@ data class Deck(
         // g should be increasing, and g(0)=0
         fun g(timeSince: Long) = ln(timeSince.toDouble() / EXPECTED_TIME + 1)
 
-        var avgScore = 0.0
-        var last: Flash? = null
-        fun lastFlashTime() = last?.createdAt ?: card.createdAt
-        for (flash in db().flash().getAllFromCard(card.id, isBack)) {
-            val since = flash.createdAt - lastFlashTime()
-            val score = (if (flash.isCorrect) f(flash.timeElapsed) else 0.0) * g(since)
-
-            // Average score will be near 0 for new cards
-            avgScore = ALPHA * score + (1 - ALPHA) * avgScore
-            last = flash
+        // Update cache
+        for (flash in db().flash().getAfter(id, lastFlashInCacheID)) {
+            val key = Pair(flash.cardID, flash.isBack)
+            if (!cache.containsKey(key)) cache[key] = Pair(0.0,
+                db().card().getByID(flash.cardID)!!.createdAt)
+            val since = flash.createdAt - cache[key]!!.second
+            var score = (if (flash.isCorrect) f(flash.timeElapsed) else 0.0) * g(since)
+            score = ALPHA * score + (1 - ALPHA) * cache[key]!!.first
+            cache[key] = Pair(score, flash.createdAt)
+            lastFlashInCacheID = max(lastFlashInCacheID, flash.id)
         }
-        return avgScore / g(System.currentTimeMillis() - lastFlashTime())
+
+        val entry = cache[Pair(card.id, isBack)] ?: Pair(0.0, card.createdAt)
+        return entry.first / g(System.currentTimeMillis() - entry.second)
     }
 
     private fun activateCardsIfDue() {
