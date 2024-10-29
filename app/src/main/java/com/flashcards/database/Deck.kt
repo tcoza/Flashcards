@@ -28,7 +28,8 @@ data class Deck(
     @ColumnInfo(name = "hint_locale") val hintLocale: String = "",
     @ColumnInfo(name = "use_hint_as_pronunciation") val useHintAsPronunciation: Boolean = false,
     @ColumnInfo(name = "activate_cards_per_day") val activateCardsPerDay: Int = 0,
-    @ColumnInfo(name = "last_card_activation") var lastCardActivation: Long = 0
+    @ColumnInfo(name = "last_card_activation") var lastCardActivation: Long = 0,
+    @ColumnInfo(name = "target_time") val targetTime: Long = 5_000      // 5s
 ) {
     fun import(stream: InputStream): Int {
         Scanner(stream).use { scanner ->
@@ -62,7 +63,7 @@ data class Deck(
         activateCardsIfDue()
         return getPossibleFlashes()
             .map { Pair(it, expectedTimeElapsed(it)) }
-            .filter { !onlyDue || it.second > EXPECTED_TIME }
+            .filter { !onlyDue || it.second > targetTime }
             .run {
                 if (isEmpty()) return@getNextFlash null
                 val lastCount = min(DONT_SHOW_LAST_N, count() - 1)
@@ -75,7 +76,7 @@ data class Deck(
     fun countDue() =
         getPossibleFlashes()
             .map { Pair(it, expectedTimeElapsed(it)) }
-            .filter { it.second > EXPECTED_TIME }
+            .filter { it.second > targetTime }
             .count()
 
     private fun getPossibleFlashes() =
@@ -86,16 +87,14 @@ data class Deck(
             }.flatten()
         }
 
-    @Ignore private val EXPECTED_TIME: Long = 5_000     // 5 seconds
-
     // f should be positive, decreasing, with an asymptote at y=0
-    private fun f(timeElapsed: Long) = 2.0.pow(-timeElapsed.toDouble() / EXPECTED_TIME)
+    private fun f(timeElapsed: Long) = 2.0.pow(-timeElapsed.toDouble() / targetTime)
     private fun f_inv(value: Double) =
         if (value == 0.0) Long.MAX_VALUE
-        else (-log(value, 2.0) * EXPECTED_TIME).toLong()
+        else (-log(value, 2.0) * targetTime).toLong()
     // g should be increasing, and g(0)=0
-    private fun g(timeSince: Long) = ln(timeSince.toDouble() / EXPECTED_TIME + 1)
-    private fun g_inv(value: Double) = ((Math.E.pow(value) - 1) * EXPECTED_TIME).toLong()
+    private fun g(timeSince: Long) = ln(timeSince.toDouble() / targetTime + 1)
+    private fun g_inv(value: Double) = ((Math.E.pow(value) - 1) * targetTime).toLong()
 
     // Map<(cardID, isBack), (value, lastFlashTime)>
     @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, Pair<Double, Long>>()
@@ -121,9 +120,11 @@ data class Deck(
     fun expectedTimeElapsed(flash: Flash) =
         getWeightedScoreAndLastFlashTime(flash)
         .let { f_inv(it.first / g(flash.createdAt - it.second)) }
+
+    // Time at which expectedTimeElapsed() returns targetTime
     fun timeDue(flash: Flash) =
         getWeightedScoreAndLastFlashTime(flash)
-        .let { g_inv(it.first / f(EXPECTED_TIME)) + it.second }
+        .let { g_inv(it.first / f(targetTime)) + it.second }
 
     private fun activateCardsIfDue() {
         if (activateCardsPerDay <= 0) return
