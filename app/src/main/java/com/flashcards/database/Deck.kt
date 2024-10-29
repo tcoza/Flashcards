@@ -73,11 +73,7 @@ data class Deck(
             .maxByOrRandom { it.second }.first
     }
 
-    fun countDue() =
-        getPossibleFlashes()
-            .map { Pair(it, expectedTimeElapsed(it)) }
-            .filter { it.second > targetTime }
-            .count()
+    fun countDue() = getPossibleFlashes().count { expectedTimeElapsed(it) > targetTime }
 
     private fun getPossibleFlashes() =
         System.currentTimeMillis().let { currentTimeMillis ->
