@@ -10,7 +10,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,12 +23,12 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.flashcards.database.Card
 import com.flashcards.database.Deck
+import com.flashcards.database.Flash
 
 class CardsActivity : ComponentActivity() {
     private lateinit var exportDeckLauncher: ActivityResultLauncher<String>
@@ -74,8 +73,9 @@ class CardsActivity : ComponentActivity() {
     @Preview
     @Composable
     fun Content(paddingValues: PaddingValues = PaddingValues()) {
-        val showHint = LocalConfiguration.current.screenWidthDp >= 500
-        Column(Modifier.padding(paddingValues).padding(16.dp), verticalArrangement = Arrangement.Bottom) {
+        val wideView = LocalConfiguration.current.screenWidthDp >= 500
+        Column(Modifier.padding(paddingValues).padding(16.dp, 0.dp, 16.dp, 16.dp),
+            verticalArrangement = Arrangement.Bottom) {
             var searchString by remember { mutableStateOf("") }
             val preview = isPreview()   // Who knows...
             LazyColumn(Modifier.weight(1f)) {
@@ -92,8 +92,13 @@ class CardsActivity : ComponentActivity() {
                             .padding(8.dp)
                     ) {
                         Text("Front", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                        if (showHint) Text("Hint", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                        if (wideView) Text("Hint", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
                         Text("Back", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                        if (wideView)
+                            Text("Due",
+                                modifier = Modifier.width(128.dp),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center)
                         Text("Active",
                             modifier = Modifier.width(56.dp),
                             fontWeight = FontWeight.Bold,
@@ -113,11 +118,20 @@ class CardsActivity : ComponentActivity() {
                             }
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        val items =
-                            if (!showHint) arrayOf(card.front, card.back)
-                            else arrayOf(card.front, card.hint.emptyIfNull(), card.back)
-                        for (item in items)
-                            Text(text = item, modifier = Modifier.weight(1f))
+                        Text(card.front, modifier = Modifier.weight(1f))
+                        if (wideView) Text(card.hint.emptyIfNull(), modifier = Modifier.weight(1f))
+                        Text(card.back, modifier = Modifier.weight(1f))
+                        if (wideView) Text(
+                            if (!card.isActive) ""
+                            else {
+                                val timeDueFront = deck.timeDue(Flash(cardID = card.id, isBack = false))
+                                val timeDueBack = deck.timeDue(Flash(cardID = card.id, isBack = true))
+                                val timeDueFrontString = toHumanString(timeDueFront - System.currentTimeMillis())
+                                val timeDueBackString = toHumanString(timeDueBack - System.currentTimeMillis())
+                                "$timeDueFrontString/$timeDueBackString"
+                            },
+                            modifier = Modifier.width(128.dp),
+                            textAlign = TextAlign.Center)
                         Checkbox(checked = card.isActive, modifier = Modifier.size(56.dp, 24.dp),
                             onCheckedChange = { checked ->
                                 val index = cards.indexOf(card)
@@ -134,6 +148,28 @@ class CardsActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Search")} )
         }
+    }
+
+    private fun toHumanString(timeMs: Long): String {
+        if (timeMs < 0) return "-" + toHumanString(-timeMs)
+        return toHumanString(timeMs, listOf(
+            Pair(1, "ms"),
+            Pair(1000, "s"),
+            Pair(60, "m"),
+            Pair(60, "h"),
+            Pair(24, "d"),
+            Pair(7, "w"),
+        ))
+    }
+
+    private fun toHumanString(value: Long, suffixes: List<Pair<Long, String>>): String {
+        var value = value
+        for (i in suffixes.indices) {
+            value /= suffixes[i].first
+            if (i+1 < suffixes.size && value >= suffixes[i+1].first) continue
+            return "${value}${suffixes[i].second}"
+        }
+        throw AssertionError("Should not reach")
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

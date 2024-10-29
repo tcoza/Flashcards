@@ -60,12 +60,8 @@ data class Deck(
     @Ignore private val DONT_SHOW_LAST_N = 5
     fun getNextFlash(onlyDue: Boolean): Flash? {
         activateCardsIfDue()
-        return db().card().getActive(id)
-            .map { listOf(
-                Flash(cardID = it.id, isBack = false),
-                Flash(cardID = it.id, isBack = true))
-            }.flatten()
-            .map { Pair(it, expectedTime(it)) }
+        return getPossibleFlashes()
+            .map { Pair(it, expectedTimeElapsed(it)) }
             .filter { !onlyDue || it.second > EXPECTED_TIME }
             .run {
                 if (isEmpty()) return@getNextFlash null
@@ -76,31 +72,38 @@ data class Deck(
             .maxByOrRandom { it.second }.first
     }
 
-    public fun countDue(): Int {
-        return db().card().getActive(id)
-            .map { listOf(
-                Flash(cardID = it.id, isBack = false),
-                Flash(cardID = it.id, isBack = true))
-            }.flatten()
-            .map { Pair(it, expectedTime(it)) }
+    fun countDue() =
+        getPossibleFlashes()
+            .map { Pair(it, expectedTimeElapsed(it)) }
             .filter { it.second > EXPECTED_TIME }
             .count()
-    }
+
+    private fun getPossibleFlashes() =
+        System.currentTimeMillis().let { currentTimeMillis ->
+            db().card().getActive(id).map { listOf(
+                Flash(cardID = it.id, isBack = false, createdAt = currentTimeMillis),
+                Flash(cardID = it.id, isBack = true, createdAt = currentTimeMillis))
+            }.flatten()
+        }
+
+    @Ignore private val EXPECTED_TIME: Long = 5_000     // 5 seconds
+
+    // f should be positive, decreasing, with an asymptote at y=0
+    private fun f(timeElapsed: Long) = 2.0.pow(-timeElapsed.toDouble() / EXPECTED_TIME)
+    private fun f_inv(value: Double) =
+        if (value == 0.0) Long.MAX_VALUE
+        else (-log(value, 2.0) * EXPECTED_TIME).toLong()
+    // g should be increasing, and g(0)=0
+    private fun g(timeSince: Long) = ln(timeSince.toDouble() / EXPECTED_TIME + 1)
+    private fun g_inv(value: Double) = ((Math.E.pow(value) - 1) * EXPECTED_TIME).toLong()
 
     // Map<(cardID, isBack), (value, lastFlashTime)>
     @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, Pair<Double, Long>>()
     @Ignore private var lastFlashInCacheID: Int = -1
-    @Ignore private val EXPECTED_TIME: Long = 5_000     // 5 seconds
-    private fun expectedTime(flash: Flash): Long {
+    // first: x(correct) * f(timeElapsed) * g(timeSincePrevFlash), exponential rolling average
+    // second: lastFlash?.createdAt ?: card.createdAt
+    private fun getWeightedScoreAndLastFlashTime(flash: Flash): Pair<Double, Long> {
         val ALPHA = 1 / Math.E
-        // f should be positive, decreasing, with an asymptote at y=0
-        fun f(timeElapsed: Long) = 2.0.pow(-timeElapsed.toDouble() / EXPECTED_TIME)
-        fun f_inv(value: Double) =
-            if (value == 0.0) Long.MAX_VALUE
-            else (-log(value, 2.0) * EXPECTED_TIME).toLong()
-        // g should be increasing, and g(0)=0
-        fun g(timeSince: Long) = ln(timeSince.toDouble() / EXPECTED_TIME + 1)
-
         // Update cache
         for (fl in db().flash().getAfter(id, lastFlashInCacheID)) {
             val key = Pair(fl.cardID, fl.isBack)
@@ -112,10 +115,15 @@ data class Deck(
             cache[key] = Pair(score, fl.createdAt)
             lastFlashInCacheID = max(lastFlashInCacheID, fl.id)
         }
-
-        val entry = cache[Pair(flash.cardID, flash.isBack)] ?: Pair(0.0, flash.card.createdAt)
-        return f_inv(entry.first / g(System.currentTimeMillis() - entry.second))
+        return cache[Pair(flash.cardID, flash.isBack)] ?: Pair(0.0, flash.card.createdAt)
     }
+
+    fun expectedTimeElapsed(flash: Flash) =
+        getWeightedScoreAndLastFlashTime(flash)
+        .let { f_inv(it.first / g(flash.createdAt - it.second)) }
+    fun timeDue(flash: Flash) =
+        getWeightedScoreAndLastFlashTime(flash)
+        .let { g_inv(it.first / f(EXPECTED_TIME)) + it.second }
 
     private fun activateCardsIfDue() {
         if (activateCardsPerDay <= 0) return
