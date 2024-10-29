@@ -43,6 +43,7 @@ class FlashActivity : ComponentActivity() {
     }
 
     var deck: Deck = Deck.dummy
+    var onlyDue: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +51,7 @@ class FlashActivity : ComponentActivity() {
         if (deck.readFront) frontTTS = MyTTS(this, deck.frontLocale)
         if (deck.readBack) backTTS = MyTTS(this, deck.backLocale)
         if (deck.readHint || deck.useHintAsPronunciation) hintTTS = MyTTS(this, deck.hintLocale)
+        onlyDue = deck.getNextFlash(true) != null
         setContent { FlashcardsTheme { Content() } }
     }
 
@@ -62,16 +64,15 @@ class FlashActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (resumeStopwatch) stopwatch.start()
-        card = db().card().getByID(card.id) ?: com.flashcards.database.Card.dummy
+        flash = flash?.copy()
     }
 
     val stopwatch = Stopwatch()
     var resumeStopwatch = false
 
-    var card by mutableStateOf(com.flashcards.database.Card.dummy)
-    var showBack  = false
-
+    var flash by mutableStateOf<Flash?>(null)
     val flashes = mutableListOf<Flash>()
+    val card get() = flash?.card ?: com.flashcards.database.Card.dummy
 
     @Preview
     @Composable
@@ -79,22 +80,22 @@ class FlashActivity : ComponentActivity() {
         val fontSize = 64.sp
         val buttonFontSize = 24.sp
 
-        val progress = remember { mutableStateOf(0.0) }
         val showHint = remember { mutableStateOf(true) }
         val showFront = remember { mutableStateOf(true) }
         val showBack = remember { mutableStateOf(true) }
         fun cardDone() = showFront.value && showBack.value
 
         fun nextCard() {
-            val pair = deck.getRandomCard(progress)
-            card = pair.first
-            this.showBack = pair.second
-            showFront.value = !this.showBack
+            deck.getNextFlash(onlyDue).let {
+                if (it != null) flash = it
+                else { finish(); return@nextCard }
+            }
+            showFront.value = !flash!!.isBack
             showHint.value = card.hint == null
-            showBack.value = this.showBack
+            showBack.value = flash!!.isBack
             stopwatch.reset()
             stopwatch.start()
-            if (this.showBack) speakBack() else speakFront()
+            if (flash!!.isBack) speakBack() else speakFront()
         }
         if (!isPreview()) {
             if (db().card().countActive(deck.id) == 0) { finish(); return }
@@ -147,10 +148,10 @@ class FlashActivity : ComponentActivity() {
                 }
             }
 
-            LinearProgressIndicator(
-                progress = progress.value.toFloat(),
-                modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+//            LinearProgressIndicator(
+//                progress = progress.value.toFloat(),
+//                modifier = Modifier.fillMaxWidth())
+//            Spacer(Modifier.height(8.dp))
             Button(modifier = Modifier.hideIf(!cardDone()),
                 onClick = {
                     if (!cardDone()) return@Button
@@ -181,14 +182,10 @@ class FlashActivity : ComponentActivity() {
                     val text = if (value) "✔" else "✘"
                     Button({
                         if (!cardDone()) return@Button
-                        db().flash().insert(
-                            Flash(0,
-                            card.id,
-                            System.currentTimeMillis(),
-                            this@FlashActivity.showBack,
-                            stopwatch.getElapsedTimeMillis(),
-                            value)
-                            .apply {
+                        db().flash().insert(flash!!.copy(
+                                timeElapsed = stopwatch.getElapsedTimeMillis(),
+                                isCorrect = value
+                            ).apply {
                                 Log.d("flash", this.toString())
                                 flashes.add(this)
                             })
@@ -220,10 +217,15 @@ class FlashActivity : ComponentActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        finish()
+        super.onBackPressed()
+    }
+
+    override fun finish() {
         setResult(Activity.RESULT_OK, Intent().apply {
             if (flashes.any()) putExtra(STATS_STR, flashes.getStatsString())
         })
-        super.onBackPressed()
+        super.finish()
     }
 
     private var frontTTS: MyTTS? = null

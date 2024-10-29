@@ -1,11 +1,9 @@
 package com.flashcards.database
 
-import androidx.compose.runtime.MutableState
 import androidx.room.*
 import com.flashcards.db
 import com.flashcards.emptyIfNull
 import com.flashcards.maxByOrRandom
-import com.flashcards.minByOrRandom
 import com.flashcards.nullIfEmpty
 import java.io.*
 import java.lang.Integer.min
@@ -13,6 +11,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Scanner
 import kotlin.math.ln
+import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.pow
 
@@ -58,45 +57,64 @@ data class Deck(
         }
     }
 
-    fun getRandomCard(value: MutableState<Double>? = null): Pair<Card, Boolean> {
+    @Ignore private val DONT_SHOW_LAST_N = 5
+    fun getNextFlash(onlyDue: Boolean): Flash? {
         activateCardsIfDue()
-        val removeLastCount = min(5, db().card().countActive(id) - 1)
-        if (removeLastCount < 0) throw Exception("Deck is empty")
-        val lastN = db().flash().getLastN(id, removeLastCount)
         return db().card().getActive(id)
-            .map { listOf(Pair(it, false), Pair(it, true)) }
-            .flatten().map { Pair(it, flashValueFunction(it.first, it.second)) }
-            .apply { value?.value = this.minOf { it.second } }
-            .filter { !lastN.any { f -> it.first.first.id == f.cardID } }
-            .minByOrRandom { it.second }.first
+            .map { listOf(
+                Flash(cardID = it.id, isBack = false),
+                Flash(cardID = it.id, isBack = true))
+            }.flatten()
+            .map { Pair(it, expectedTime(it)) }
+            .filter { !onlyDue || it.second > EXPECTED_TIME }
+            .run {
+                if (isEmpty()) return@getNextFlash null
+                val lastCount = min(DONT_SHOW_LAST_N, count() - 1)
+                val last = db().flash().getLastN(id, lastCount).map { it.cardID }
+                filter { !last.contains(it.first.cardID) }
+            }
+            .maxByOrRandom { it.second }.first
+    }
+
+    public fun countDue(): Int {
+        return db().card().getActive(id)
+            .map { listOf(
+                Flash(cardID = it.id, isBack = false),
+                Flash(cardID = it.id, isBack = true))
+            }.flatten()
+            .map { Pair(it, expectedTime(it)) }
+            .filter { it.second > EXPECTED_TIME }
+            .count()
     }
 
     // Map<(cardID, isBack), (value, lastFlashTime)>
     @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, Pair<Double, Long>>()
     @Ignore private var lastFlashInCacheID: Int = -1
-    private fun flashValueFunction(card: Card, isBack: Boolean): Double {
+    @Ignore private val EXPECTED_TIME: Long = 5_000     // 5 seconds
+    private fun expectedTime(flash: Flash): Long {
         val ALPHA = 1 / Math.E
-        val EXPECTED_TIME: Long = 5_000     // 5 seconds
-
         // f should be positive, decreasing, with an asymptote at y=0
-        fun f(timeElapsed: Long) = 0.5.pow(timeElapsed.toDouble() / EXPECTED_TIME)
+        fun f(timeElapsed: Long) = 2.0.pow(-timeElapsed.toDouble() / EXPECTED_TIME)
+        fun f_inv(value: Double) =
+            if (value == 0.0) Long.MAX_VALUE
+            else (-log(value, 2.0) * EXPECTED_TIME).toLong()
         // g should be increasing, and g(0)=0
         fun g(timeSince: Long) = ln(timeSince.toDouble() / EXPECTED_TIME + 1)
 
         // Update cache
-        for (flash in db().flash().getAfter(id, lastFlashInCacheID)) {
-            val key = Pair(flash.cardID, flash.isBack)
+        for (fl in db().flash().getAfter(id, lastFlashInCacheID)) {
+            val key = Pair(fl.cardID, fl.isBack)
             if (!cache.containsKey(key)) cache[key] = Pair(0.0,
-                db().card().getByID(flash.cardID)!!.createdAt)
-            val since = flash.createdAt - cache[key]!!.second
-            var score = (if (flash.isCorrect) f(flash.timeElapsed) else 0.0) * g(since)
+                db().card().getByID(fl.cardID)!!.createdAt)
+            val since = fl.createdAt - cache[key]!!.second
+            var score = (if (fl.isCorrect) f(fl.timeElapsed) else 0.0) * g(since)
             score = ALPHA * score + (1 - ALPHA) * cache[key]!!.first
-            cache[key] = Pair(score, flash.createdAt)
-            lastFlashInCacheID = max(lastFlashInCacheID, flash.id)
+            cache[key] = Pair(score, fl.createdAt)
+            lastFlashInCacheID = max(lastFlashInCacheID, fl.id)
         }
 
-        val entry = cache[Pair(card.id, isBack)] ?: Pair(0.0, card.createdAt)
-        return entry.first / g(System.currentTimeMillis() - entry.second)
+        val entry = cache[Pair(flash.cardID, flash.isBack)] ?: Pair(0.0, flash.card.createdAt)
+        return f_inv(entry.first / g(System.currentTimeMillis() - entry.second))
     }
 
     private fun activateCardsIfDue() {

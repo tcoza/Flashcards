@@ -4,9 +4,11 @@ import androidx.compose.material3.Text
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import com.flashcards.db
 
 @Dao
 interface FlashDao {
@@ -59,11 +61,14 @@ interface FlashDao {
 data class Flash(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     @ColumnInfo(name = "card_id") val cardID: Int,
-    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "is_back") val isBack: Boolean,
-    @ColumnInfo(name = "time_elapsed") val timeElapsed: Long,
-    @ColumnInfo(name = "is_correct") val isCorrect: Boolean
-)
+    @ColumnInfo(name = "time_elapsed") val timeElapsed: Long = 0,
+    @ColumnInfo(name = "is_correct") val isCorrect: Boolean = false
+) {
+    @Ignore private var _card: Card? = null
+    val card: Card get() = _card ?: db().card().getByID(cardID)!!.also { _card = it }
+}
 
 fun Iterable<Flash>.getStatsString(): String {
     val total = count()

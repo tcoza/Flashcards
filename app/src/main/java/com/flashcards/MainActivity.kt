@@ -38,6 +38,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalUnit
+import kotlinx.coroutines.*
 
 class MainActivity : ComponentActivity() {
     private lateinit var cardActivityLauncher: ActivityResultLauncher<Intent>
@@ -84,9 +85,11 @@ class MainActivity : ComponentActivity() {
     fun refreshDecks() {
         decks.clear()
         decks.addAll(db().deck().getAll())
+        refreshDecks = !refreshDecks
     }
 
     var decks = mutableStateListOf<Deck>()
+    var refreshDecks by mutableStateOf(false)
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -168,10 +171,24 @@ class MainActivity : ComponentActivity() {
             Row(Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(deck.name, modifier = Modifier.weight(1f).padding(end = 8.dp))
-                Text(if (!isPreview())
-                    "${db().card().countActive(deck.id)}/${db().card().count(deck.id)}"
-                    else "0/0", softWrap = false)
+                Text(deck.name, modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp))
+                var countText by remember { mutableStateOf("") }
+                if (isPreview()) countText = "0/0/0"
+                else if (countText == "") {
+                    countText = db().card().countActive(deck.id).toString() + "/"
+                    countText += db().card().count(deck.id).toString()
+                }
+                LaunchedEffect(refreshDecks) {
+                    while (true) {
+                        countText = deck.countDue().toString() + "/"
+                        countText += db().card().countActive(deck.id).toString() + "/"
+                        countText += db().card().count(deck.id).toString()
+                        delay(30_000)   // 30 s
+                    }
+                }
+                Text(countText, softWrap = false)
                 Spacer(Modifier.width(8.dp))
                 SmallButton(if (isSelected) "▲" else "▼") {
                     selected.value = if (isSelected) -1 else index
