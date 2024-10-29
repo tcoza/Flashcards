@@ -64,9 +64,11 @@ class CardsActivity : ComponentActivity() {
         refreshCards()
     }
 
+    var sortByDue by mutableStateOf(false)
     fun refreshCards() {
         cards.clear()
         cards.addAll(db().card().getAll(deck.id))
+        if (sortByDue) cards.sortBy { deck.timeDue(it) }
     }
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -74,12 +76,15 @@ class CardsActivity : ComponentActivity() {
     @Composable
     fun Content(paddingValues: PaddingValues = PaddingValues()) {
         val wideView = LocalConfiguration.current.screenWidthDp >= 500
-        Column(Modifier.padding(paddingValues).padding(16.dp, 0.dp, 16.dp, 16.dp),
+        Column(
+            Modifier
+                .padding(paddingValues)
+                .padding(16.dp, 0.dp, 16.dp, 16.dp),
             verticalArrangement = Arrangement.Bottom) {
             var searchString by remember { mutableStateOf("") }
             val preview = isPreview()   // Who knows...
             LazyColumn(Modifier.weight(1f)) {
-                val filtered = cards.filter {
+                var filtered = cards.filter {
                     arrayOf(it.front, it.back, it.hint.emptyIfNull()).any {
                         it.contains(searchString, true)
                     }
@@ -96,7 +101,11 @@ class CardsActivity : ComponentActivity() {
                         Text("Back", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
                         if (wideView)
                             Text("Due",
-                                modifier = Modifier.width(128.dp),
+                                modifier = Modifier.width(128.dp)
+                                    .clickable {
+                                        sortByDue = !sortByDue
+                                        refreshCards()
+                                    },
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center)
                         Text("Active",

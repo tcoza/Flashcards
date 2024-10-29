@@ -66,7 +66,8 @@ data class Deck(
             .filter { !onlyDue || it.second > targetTime }
             .run {
                 if (isEmpty()) return@getNextFlash null
-                val lastCount = min(DONT_SHOW_LAST_N, count() - 1)
+                val cardsCount = distinctBy { it.first.cardID }.count()
+                val lastCount = min(DONT_SHOW_LAST_N, cardsCount - 1)
                 val last = db().flash().getLastN(id, lastCount).map { it.cardID }
                 filter { !last.contains(it.first.cardID) }
             }
@@ -121,6 +122,8 @@ data class Deck(
     fun timeDue(flash: Flash) =
         getWeightedScoreAndLastFlashTime(flash)
         .let { g_inv(it.first / f(targetTime)) + it.second }
+
+    fun timeDue(card: Card) = listOf(false, true).map { Flash(cardID = card.id, isBack = it) }.minOf { timeDue(it) }
 
     private fun activateCardsIfDue() {
         if (activateCardsPerDay <= 0) return
