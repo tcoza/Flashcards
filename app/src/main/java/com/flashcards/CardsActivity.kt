@@ -42,6 +42,8 @@ class CardsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
+        deck.autoUpdateCache = false    // No need
+        deck.updateCache()
         setContent { FlashcardsTheme { Scaffold(topBar = { TopBar() }, content = { Content(it) }) } }
 
         importDeckLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let { uri ->
@@ -65,7 +67,7 @@ class CardsActivity : ComponentActivity() {
     }
 
     var sortByDue by mutableStateOf(false)
-    fun refreshCards() {
+    private fun refreshCards() {
         cards.clear()
         cards.addAll(db().card().getAll(deck.id))
         if (sortByDue) cards.sortBy { deck.timeDue(it) }

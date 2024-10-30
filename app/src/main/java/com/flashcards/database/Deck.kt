@@ -61,27 +61,28 @@ data class Deck(
     @Ignore private val DONT_SHOW_LAST_N = 5
     fun getNextFlash(onlyDue: Boolean): Flash? {
         activateCardsIfDue()
-        return getPossibleFlashes()
+        return disableUpdateCache {
+            getPossibleFlashes()
             .map { Pair(it, expectedTimeElapsed(it)) }
             .filter { !onlyDue || it.second > targetTime }
             .run {
-                if (isEmpty()) return@getNextFlash null
+                if (isEmpty()) return@disableUpdateCache null
                 val cardsCount = distinctBy { it.first.cardID }.count()
                 val lastCount = min(DONT_SHOW_LAST_N, cardsCount - 1)
                 val last = db().flash().getLastN(id, lastCount).map { it.cardID }
                 filter { !last.contains(it.first.cardID) }
             }
             .maxByOrRandom { it.second }.first
+        }
     }
 
-    fun countDue() = getPossibleFlashes().count { expectedTimeElapsed(it) > targetTime }
+    fun countDue() = disableUpdateCache { getPossibleFlashes().count { expectedTimeElapsed(it) > targetTime } }
 
     private fun getPossibleFlashes() =
         System.currentTimeMillis().let { currentTimeMillis ->
-            db().card().getActive(id).map { listOf(
-                Flash(cardID = it.id, isBack = false, createdAt = currentTimeMillis),
-                Flash(cardID = it.id, isBack = true, createdAt = currentTimeMillis))
-            }.flatten()
+            db().card().getActive(id).map { listOf(false, true).map { back ->
+                Flash(cardID = it.id, isBack = back, createdAt = currentTimeMillis)
+            }}.flatten()
         }
 
     // f should be positive, decreasing, with an asymptote at y=0
@@ -93,25 +94,39 @@ data class Deck(
     private fun g(timeSince: Long) = ln(timeSince.toDouble() / targetTime + 1)
     private fun g_inv(value: Double) = ((Math.E.pow(value) - 1) * targetTime).toLong()
 
+    @Ignore public var autoUpdateCache: Boolean = true
     // Map<(cardID, isBack), (value, lastFlashTime)>
     @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, Pair<Double, Long>>()
     @Ignore private var lastFlashInCacheID: Int = -1
+    fun updateCache() {
+        val ALPHA = 1 / Math.E
+        for (flash in db().flash().getAfter(id, lastFlashInCacheID)) {
+            val key = Pair(flash.cardID, flash.isBack)
+            if (!cache.containsKey(key)) cache[key] = Pair(0.0,
+                db().card().getByID(flash.cardID)!!.createdAt)
+            val since = flash.createdAt - cache[key]!!.second
+            var score = (if (flash.isCorrect) f(flash.timeElapsed) else 0.0) * g(since)
+            score = ALPHA * score + (1 - ALPHA) * cache[key]!!.first
+            cache[key] = Pair(score, flash.createdAt)
+            lastFlashInCacheID = max(lastFlashInCacheID, flash.id)
+        }
+    }
+
     // first: x(correct) * f(timeElapsed) * g(timeSincePrevFlash), exponential rolling average
     // second: lastFlash?.createdAt ?: card.createdAt
     private fun getWeightedScoreAndLastFlashTime(flash: Flash): Pair<Double, Long> {
-        val ALPHA = 1 / Math.E
-        // Update cache
-        for (fl in db().flash().getAfter(id, lastFlashInCacheID)) {
-            val key = Pair(fl.cardID, fl.isBack)
-            if (!cache.containsKey(key)) cache[key] = Pair(0.0,
-                db().card().getByID(fl.cardID)!!.createdAt)
-            val since = fl.createdAt - cache[key]!!.second
-            var score = (if (fl.isCorrect) f(fl.timeElapsed) else 0.0) * g(since)
-            score = ALPHA * score + (1 - ALPHA) * cache[key]!!.first
-            cache[key] = Pair(score, fl.createdAt)
-            lastFlashInCacheID = max(lastFlashInCacheID, fl.id)
-        }
+        if (autoUpdateCache) updateCache()
         return cache[Pair(flash.cardID, flash.isBack)] ?: Pair(0.0, flash.card.createdAt)
+    }
+
+    private fun <T> disableUpdateCache(action: () -> T): T {
+        val save = autoUpdateCache
+        try {
+            if (autoUpdateCache) updateCache()
+            autoUpdateCache = false
+            return action.invoke()
+        }
+        finally { autoUpdateCache = save }
     }
 
     fun expectedTimeElapsed(flash: Flash) =

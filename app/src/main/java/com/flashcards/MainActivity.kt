@@ -174,21 +174,16 @@ class MainActivity : ComponentActivity() {
                 Text(deck.name, modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp))
-                var countText by remember { mutableStateOf("") }
-                if (isPreview()) countText = "0/0/0"
-                else if (countText == "") {
-                    countText = db().card().countActive(deck.id).toString() + "/"
-                    countText += db().card().count(deck.id).toString()
-                }
-                LaunchedEffect(refreshDecks) {
+                val count = db().card().count(deck.id)
+                val countActive = db().card().countActive(deck.id)
+                var countDue by remember { mutableStateOf<Int?>(null) }
+                LaunchedEffect(Unit) {
                     while (true) {
-                        countText = deck.countDue().toString() + "/"
-                        countText += db().card().countActive(deck.id).toString() + "/"
-                        countText += db().card().count(deck.id).toString()
-                        delay(30_000)   // 30 s
+                        countDue = deck.countDue()
+                        delay(5_000)   // 10 s
                     }
                 }
-                Text(countText, softWrap = false)
+                Text("${countDue ?: "?"}/$countActive/$count", softWrap = false)
                 Spacer(Modifier.width(8.dp))
                 SmallButton(if (isSelected) "▲" else "▼") {
                     selected.value = if (isSelected) -1 else index
