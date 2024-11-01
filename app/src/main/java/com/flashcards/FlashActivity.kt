@@ -45,6 +45,7 @@ class FlashActivity : ComponentActivity() {
     var deck: Deck = Deck.dummy
     var onlyDue: Boolean = false
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
@@ -52,7 +53,7 @@ class FlashActivity : ComponentActivity() {
         if (deck.readBack) backTTS = MyTTS(this, deck.backLocale)
         if (deck.readHint || deck.useHintAsPronunciation) hintTTS = MyTTS(this, deck.hintLocale)
         onlyDue = deck.getNextFlash(true) != null
-        setContent { FlashcardsTheme { Content() } }
+        setContent { FlashcardsTheme { Scaffold(content = { Content(it) }) } }     // Scaffold for dark theme
     }
 
     override fun onPause() {
@@ -76,7 +77,7 @@ class FlashActivity : ComponentActivity() {
 
     @Preview
     @Composable
-    fun Content() {
+    fun Content(paddingValues: PaddingValues = PaddingValues()) {
         val fontSize = 64.sp
         val buttonFontSize = 24.sp
 
@@ -110,6 +111,7 @@ class FlashActivity : ComponentActivity() {
         Column(
             Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(24.dp)
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = {

@@ -8,6 +8,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -29,13 +30,14 @@ import com.flashcards.database.Deck
 import com.flashcards.ui.theme.FlashcardsTheme
 
 class EditCardActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val deck_id = (intent?.extras?.getInt(DECK_ID_INT))!!
         deck.value = db().deck().getByID(deck_id)!!
         val card_id = intent?.extras?.getInt(CARD_ID_INT, -1) ?: -1
         card = if (card_id == -1) null else db().card().getByID(card_id)!!
-        setContent { FlashcardsTheme { Content() } }
+        setContent { FlashcardsTheme { Scaffold(content = { Content(it) }) } }     // Scaffold for dark theme
     }
 
     var deck = mutableStateOf(Deck.dummy)
@@ -44,7 +46,7 @@ class EditCardActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     @Preview(showBackground = true)
-    fun Content() {
+    fun Content(paddingValues: PaddingValues = PaddingValues()) {
         val decks = db().deck().getAll().map { Pair(it, it.name) }
         var isActive by remember { mutableStateOf(card?.isActive ?: false) }
         var front by remember { mutableStateOf((card?.front).emptyIfNull()) }
