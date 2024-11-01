@@ -177,10 +177,10 @@ class MainActivity : ComponentActivity() {
                 val count = db().card().count(deck.id)
                 val countActive = db().card().countActive(deck.id)
                 var countDue by remember { mutableStateOf<Int?>(null) }
-                LaunchedEffect(Unit) {
+                LaunchedEffect(deck) {
                     while (true) {
                         countDue = deck.countDue()
-                        delay(5_000)   // 10 s
+                        delay(2_000)   // 2 s
                     }
                 }
                 Text("${countDue ?: "?"}/$countActive/$count", softWrap = false)

@@ -1,42 +1,27 @@
 package com.flashcards
 
-import android.app.Activity
 import android.app.AlertDialog
-import android.content.Intent
 import android.os.Bundle
-import android.widget.EditText
-import android.widget.NumberPicker
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flashcards.database.AppDatabase
 import com.flashcards.database.Deck
 import com.flashcards.ui.theme.FlashcardsTheme
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.lang.NumberFormatException
 import java.util.Locale
 
@@ -70,6 +55,8 @@ class DeckActivity : ComponentActivity() {
                 .padding(paddingValues)
                 .padding(24.dp)
         ) {
+            var fontSize = 20.sp
+
             var name by remember { mutableStateOf(deck.name) }
             var readFront = remember { mutableStateOf(deck.readFront) }
             var readBack = remember { mutableStateOf(deck.readBack) }
@@ -78,15 +65,41 @@ class DeckActivity : ComponentActivity() {
             var backLocale = remember { mutableStateOf(deck.backLocale) }
             var hintLocale = remember { mutableStateOf(deck.hintLocale) }
             var useHintAsPronunciation by remember { mutableStateOf(deck.useHintAsPronunciation) }
-            var activateCardsPerDay by remember { mutableStateOf(deck.activateCardsPerDay) }
+            var activateCardsPerDayStr by remember { mutableStateOf(deck.activateCardsPerDay.toString()) }
+            var targetTimeStr by remember { mutableStateOf((deck.targetTime / 1000f).toString()) }
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Deck name") },
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = TextStyle(fontSize = 32.sp)
+                textStyle = TextStyle(fontSize = 24.sp)
             )
-            var fontSize = 20.sp
+            Spacer(Modifier.height(24.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Target time per card: ", fontSize = fontSize)
+                Spacer(Modifier.weight(1f))
+                TextField(
+                    value = targetTimeStr,
+                    onValueChange = { targetTimeStr = it },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.size(96.dp, 56.dp)
+                )
+                Text(" s", fontSize = fontSize)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Auto-activate ", fontSize = fontSize)
+                TextField(
+                    value = activateCardsPerDayStr,
+                    onValueChange = { activateCardsPerDayStr = it },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.size(64.dp, 56.dp)
+                )
+                Text(" cards/day", fontSize = fontSize)
+            }
+            Spacer(Modifier.height(24.dp))
+
             @Composable
             fun LabeledSwitch(text: String, value: MutableState<Boolean>, lang: MutableState<String>) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -97,35 +110,22 @@ class DeckActivity : ComponentActivity() {
                         lang, Modifier.weight(2f))
                 }
             }
-            Spacer(Modifier.height(24.dp))
-            Text("Text-to-speech", fontSize = fontSize)
-            Spacer(Modifier.height(8.dp))
-            LabeledSwitch("Front", readFront, frontLocale)
-            Spacer(Modifier.height(4.dp))
-            LabeledSwitch("Hint", readHint, hintLocale)
-            Spacer(Modifier.height(4.dp))
-            LabeledSwitch("Back", readBack, backLocale)
-            Spacer(Modifier.height(4.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Hint as front pronunciation:", fontSize = fontSize)
-                Spacer(Modifier.weight(1f))
-                Switch(checked = useHintAsPronunciation, onCheckedChange = { useHintAsPronunciation = it })
+            GroupBox("Text-to-speech", Modifier.fillMaxWidth()) {
+                LabeledSwitch("Front", readFront, frontLocale)
+                Spacer(Modifier.height(4.dp))
+                LabeledSwitch("Hint", readHint, hintLocale)
+                Spacer(Modifier.height(4.dp))
+                LabeledSwitch("Back", readBack, backLocale)
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Hint as front pronunciation:", fontSize = fontSize)
+                    Spacer(Modifier.weight(1f))
+                    Switch(checked = useHintAsPronunciation, onCheckedChange = { useHintAsPronunciation = it })
+                }
             }
+
             Spacer(Modifier.height(24.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Auto-activate ", fontSize = fontSize)
-                TextField(
-                    value = activateCardsPerDay.toString(),
-                    onValueChange = {
-                        try { activateCardsPerDay = it.toInt() }
-                        catch (_: NumberFormatException) {}
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.size(64.dp, 56.dp)
-                )
-                Text(" cards/day", fontSize = fontSize)
-            }
-            Spacer(Modifier.height(24.dp))
+
             Row(Modifier.fillMaxWidth()) {
                 Button(colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     onClick = {
@@ -142,11 +142,16 @@ class DeckActivity : ComponentActivity() {
                     }
                 ) { Text("Delete") }
                 Spacer(Modifier.weight(1f))
-                Button(onClick = {
+                Button(
+                    enabled =
+                        targetTimeStr.toFloatOrNull() != null &&
+                        activateCardsPerDayStr.toIntOrNull() != null,
+                    onClick = {
                     deck = db().deck().getByID(deck.id)!!
                     deck = deck.copy(
                         name = name,
-                        activateCardsPerDay = activateCardsPerDay,
+                        targetTime = (targetTimeStr.toFloat() * 1000).toLong(),
+                        activateCardsPerDay = activateCardsPerDayStr.toInt(),
                         readFront = readFront.value,
                         readBack = readBack.value,
                         readHint = readHint.value,
@@ -179,5 +184,26 @@ class DeckActivity : ComponentActivity() {
                 }
             }
         )
+    }
+
+    @Composable
+    fun GroupBox(
+        title: String,
+        modifier: Modifier = Modifier,
+        content: @Composable ColumnScope.() -> Unit
+    ) {
+        Column(
+            modifier = modifier
+                .border(1.dp, Color.Gray, shape = RoundedCornerShape(8.dp))
+                .padding(8.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            content()
+        }
     }
 }
