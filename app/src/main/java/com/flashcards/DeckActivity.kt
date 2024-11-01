@@ -53,7 +53,7 @@ class DeckActivity : ComponentActivity() {
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp)
+                .padding(horizontal = 24.dp)
         ) {
             var fontSize = 20.sp
 
