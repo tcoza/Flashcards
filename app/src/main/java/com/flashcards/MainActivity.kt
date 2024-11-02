@@ -85,11 +85,11 @@ class MainActivity : ComponentActivity() {
     fun refreshDecks() {
         decks.clear()
         decks.addAll(db().deck().getAll())
-        refreshDecks = !refreshDecks
+        recountDue = !recountDue
     }
 
-    var decks = mutableStateListOf<Deck>()
-    var refreshDecks by mutableStateOf(false)
+    private var decks = mutableStateListOf<Deck>()
+    private var recountDue by mutableStateOf(false)
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -177,10 +177,10 @@ class MainActivity : ComponentActivity() {
                 val count = db().card().count(deck.id)
                 val countActive = db().card().countActive(deck.id)
                 var countDue by remember { mutableStateOf<Int?>(null) }
-                LaunchedEffect(deck) {
+                LaunchedEffect(deck, recountDue) {
                     while (true) {
                         countDue = deck.countDue()
-                        delay(2_000)   // 2 s
+                        delay(5_000)   // 5 s
                     }
                 }
                 Text("${countDue ?: "?"}/$countActive/$count", softWrap = false)

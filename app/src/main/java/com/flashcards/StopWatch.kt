@@ -13,18 +13,16 @@ class Stopwatch {
 
     // Start or resume the stopwatch
     fun start() {
-        if (!isRunning) {
-            startTime = SystemClock.elapsedRealtime()
-            isRunning = true
-        }
+        if (isRunning) return
+        startTime = SystemClock.elapsedRealtime()
+        isRunning = true
     }
 
     // Pause the stopwatch
     fun pause() {
-        if (isRunning) {
-            accumulatedTime += SystemClock.elapsedRealtime() - startTime
-            isRunning = false
-        }
+        if (!isRunning) return
+        accumulatedTime += SystemClock.elapsedRealtime() - startTime
+        isRunning = false
     }
 
     // Reset the stopwatch
@@ -34,11 +32,5 @@ class Stopwatch {
         isRunning = false
     }
 
-    fun getElapsedTimeMillis(): Long {
-        return if (isRunning) {
-            accumulatedTime + (SystemClock.elapsedRealtime() - startTime)
-        } else {
-            accumulatedTime
-        }
-    }
+    fun getElapsedTimeMillis() = accumulatedTime + if(isRunning) (SystemClock.elapsedRealtime() - startTime) else 0
 }

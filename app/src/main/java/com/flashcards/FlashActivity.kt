@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.Closeable
 import java.util.Locale
+import kotlin.math.min
 
 class FlashActivity : ComponentActivity() {
     companion object {
@@ -108,6 +109,15 @@ class FlashActivity : ComponentActivity() {
         LaunchedEffect(showHint.value) { if (showHint.value) speakHint() }
         if (cardDone() && stopwatch.isRunning) stopwatch.pause()
 
+        var progress by remember { mutableStateOf(0f) }
+        LinearProgressIndicator(progress = progress, Modifier.fillMaxWidth())
+        LaunchedEffect(Unit) {
+            while (true) {
+                progress = stopwatch.getElapsedTimeMillis() / deck.targetTime.toFloat()
+                progress = min(progress, 1f)
+                delay(20)
+            }
+        }
         Column(
             Modifier
                 .fillMaxSize()
