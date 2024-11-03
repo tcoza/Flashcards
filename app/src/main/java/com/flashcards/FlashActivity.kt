@@ -26,6 +26,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import com.flashcards.database.Card
 import com.flashcards.database.Deck
 import com.flashcards.database.Flash
 import com.flashcards.database.getStatsString
@@ -66,7 +67,7 @@ class FlashActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (resumeStopwatch) stopwatch.start()
-        flash = flash?.copy()
+        refreshCard()
     }
 
     val stopwatch = Stopwatch()
@@ -74,7 +75,8 @@ class FlashActivity : ComponentActivity() {
 
     var flash by mutableStateOf<Flash?>(null)
     val flashes = mutableListOf<Flash>()
-    val card get() = flash?.card ?: com.flashcards.database.Card.dummy
+    var card by mutableStateOf(Card.dummy)
+    private fun refreshCard() { card = flash?.card() ?: Card.dummy }
 
     @Preview
     @Composable
@@ -89,8 +91,12 @@ class FlashActivity : ComponentActivity() {
 
         fun nextCard() {
             deck.getNextFlash(onlyDue).let {
-                if (it != null) flash = it
-                else { finish(); return@nextCard }
+                if (it == null) {
+                    finish()
+                    return@nextCard
+                }
+                flash = it
+                refreshCard()
             }
             showFront.value = !flash!!.isBack
             showHint.value = card.hint == null

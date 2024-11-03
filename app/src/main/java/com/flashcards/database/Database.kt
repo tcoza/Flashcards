@@ -7,7 +7,10 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.Locale
 
-@Database(entities = [Deck::class, Card::class, Flash::class], version = 5)
+@Database(
+    entities = [Deck::class, Card::class, Flash::class],
+    exportSchema = false,
+    version = 5)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun deck(): DeckDao
     abstract fun card(): CardDao

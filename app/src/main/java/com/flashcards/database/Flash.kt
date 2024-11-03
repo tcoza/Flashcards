@@ -66,8 +66,7 @@ data class Flash(
     @ColumnInfo(name = "time_elapsed") val timeElapsed: Long = 0,
     @ColumnInfo(name = "is_correct") val isCorrect: Boolean = false
 ) {
-    @Ignore private var _card: Card? = null
-    val card: Card get() = _card ?: db().card().getByID(cardID)!!.also { _card = it }
+    fun card() = db().card().getByID(cardID)!!
 }
 
 fun Iterable<Flash>.getStatsString(): String {

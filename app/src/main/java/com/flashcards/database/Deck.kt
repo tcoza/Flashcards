@@ -116,7 +116,7 @@ data class Deck(
     // second: lastFlash?.createdAt ?: card.createdAt
     private fun getWeightedScoreAndLastFlashTime(flash: Flash): Pair<Double, Long> {
         if (autoUpdateCache) updateCache()
-        return cache[Pair(flash.cardID, flash.isBack)] ?: Pair(0.0, flash.card.createdAt)
+        return cache[Pair(flash.cardID, flash.isBack)] ?: Pair(0.0, flash.card().createdAt)
     }
 
     private fun <T> disableUpdateCache(action: () -> T): T {
