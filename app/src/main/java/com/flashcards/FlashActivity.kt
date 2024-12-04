@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -87,7 +88,6 @@ class FlashActivity : ComponentActivity() {
         val showHint = remember { mutableStateOf(true) }
         val showFront = remember { mutableStateOf(true) }
         val showBack = remember { mutableStateOf(true) }
-        fun cardDone() = showFront.value && showBack.value
 
         fun nextCard() {
             deck.getNextFlash(onlyDue).let {
@@ -107,13 +107,14 @@ class FlashActivity : ComponentActivity() {
         }
         if (!isPreview()) {
             if (db().card().countActive(deck.id) == 0) { finish(); return }
-            if (card === com.flashcards.database.Card.dummy || db().card().getByID(card.id) == null)
-                nextCard()
+            if (card === Card.dummy || db().card().getByID(card.id) == null) nextCard()
         }
         LaunchedEffect(showFront.value) { if (showFront.value) speakFront() }
         LaunchedEffect(showBack.value) { if (showBack.value) speakBack() }
         LaunchedEffect(showHint.value) { if (showHint.value) speakHint() }
-        if (cardDone() && stopwatch.isRunning) stopwatch.pause()
+
+        val cardDone = showFront.value && showBack.value
+        if (cardDone && stopwatch.isRunning) stopwatch.pause()
 
         var progress by remember { mutableStateOf(0f) }
         LinearProgressIndicator(progress = progress, Modifier.fillMaxWidth())
@@ -124,25 +125,25 @@ class FlashActivity : ComponentActivity() {
                 delay(20)
             }
         }
+        val tapDetector: suspend PointerInputScope.() -> Unit = {
+            if (!cardDone) detectTapGestures(onTap = {
+                showFront.value = true
+                showBack.value = true
+            })
+            else detectTapGestures(onDoubleTap = {
+                Intent(this@FlashActivity, EditCardActivity::class.java).apply {
+                    putExtra(DECK_ID_INT, deck.id)
+                    putExtra(CARD_ID_INT, card.id)
+                    this@FlashActivity.startActivity(this)
+                }
+            })
+        }
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(24.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = {
-                        if (showHint.value) {
-                            showFront.value = true
-                            showBack.value = true
-                        } else showHint.value = true
-                    })
-                }
-                .pointerInput(Unit) {
-//                    detectDragGestures(
-//                        onDrag = { _, _ -> },
-//                        onDragStart = {},
-//                        onDragEnd = { if (cardDone()) nextCard() })
-                },
+                .pointerInput(cardDone, tapDetector),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             @Composable
@@ -156,6 +157,7 @@ class FlashActivity : ComponentActivity() {
                             .fillMaxWidth()
                             .align(Alignment.Center)
                             .hideIf(!state.value)
+                            .pointerInput(cardDone, tapDetector),
                         )
                     Button(modifier = Modifier
                         .align(Alignment.Center)
@@ -164,23 +166,6 @@ class FlashActivity : ComponentActivity() {
                         Text(buttonText, fontSize = buttonFontSize)
                     }
                 }
-            }
-
-//            LinearProgressIndicator(
-//                progress = progress.value.toFloat(),
-//                modifier = Modifier.fillMaxWidth())
-//            Spacer(Modifier.height(8.dp))
-            Button(modifier = Modifier.hideIf(!cardDone()),
-                onClick = {
-                    if (!cardDone()) return@Button
-                    Intent(this@FlashActivity, EditCardActivity::class.java).apply {
-                        putExtra(DECK_ID_INT, deck.id)
-                        putExtra(CARD_ID_INT, card.id)
-                        this@FlashActivity.startActivity(this)
-                    }
-                }
-            ) {
-                Text("Edit", fontSize = buttonFontSize)
             }
 
             Spacer(Modifier.weight(1f))
@@ -193,13 +178,13 @@ class FlashActivity : ComponentActivity() {
             ButtonOrText(card.back, "Show back", showBack)
             Spacer(Modifier.weight(1f))
 
-            Row(modifier = Modifier.hideIf(!cardDone())) {
+            Row(modifier = Modifier.hideIf(!cardDone)) {
                 @Composable
                 fun ResultButton(value: Boolean) {
                     val color = if (value) Color.Green else Color.Red
                     val text = if (value) "✔" else "✘"
                     Button({
-                        if (!cardDone()) return@Button
+                        if (!cardDone) return@Button
                         db().flash().insert(flash!!.copy(
                                 timeElapsed = stopwatch.getElapsedTimeMillis(),
                                 isCorrect = value
@@ -222,14 +207,14 @@ class FlashActivity : ComponentActivity() {
                 ResultButton(value = true)
                 Spacer(Modifier.weight(2f))
             }
-            Text(when {
-                    !showHint.value -> "Tap to show hint"
-                    !showFront.value -> "Tap to show front"
-                    !showBack.value -> "Tap to show back"
-                    else -> "Swipe for next"
-                },
-                fontSize = buttonFontSize,
-                modifier = Modifier.hideIf(cardDone()))
+//            Text(when {
+//                    !showHint.value -> "Tap to show hint"
+//                    !showFront.value -> "Tap to show front"
+//                    !showBack.value -> "Tap to show back"
+//                    else -> "Swipe for next"
+//                },
+//                fontSize = buttonFontSize,
+//                modifier = Modifier.hideIf(cardDone()))
         }
     }
 
