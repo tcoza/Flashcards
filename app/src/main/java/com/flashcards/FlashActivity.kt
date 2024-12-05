@@ -127,11 +127,9 @@ class FlashActivity : ComponentActivity() {
 
         val tapDetector: suspend PointerInputScope.() -> Unit = {
             if (!cardDone) detectTapGestures(onTap = {
-                if (showHint.value) {
-                    showFront.value = true
-                    showBack.value = true
-                }
-                else showHint.value = true
+                showFront.value = true
+                showBack.value = showBack.value || showHint.value
+                showHint.value = true
             })
             else detectTapGestures(onDoubleTap = {
                 Intent(this@FlashActivity, EditCardActivity::class.java).apply {
