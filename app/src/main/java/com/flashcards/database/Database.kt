@@ -10,7 +10,7 @@ import java.util.Locale
 @Database(
     entities = [Deck::class, Card::class, Flash::class],
     exportSchema = false,
-    version = 5)
+    version = 6)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun deck(): DeckDao
     abstract fun card(): CardDao
@@ -25,6 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(MIGRATION_2_3)
                 .addMigrations(MIGRATION_3_4)
                 .addMigrations(MIGRATION_4_5)
+                .addMigrations(MIGRATION_5_6)
                 .build()
     }
 }
@@ -67,5 +68,13 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
 val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(database: SupportSQLiteDatabase) = database.run {
         addColumn("deck", "target_time", "INT", Deck(name = "").targetTime.toString())
+    }
+}
+
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(database: SupportSQLiteDatabase) = database.run {
+        addColumn("deck", "show_hint", "INT", "1")
+        addColumn("deck", "show_back", "INT", "0")
+        addColumn("deck", "font_size", "INT", Deck(name = "").fontSize.toString())
     }
 }

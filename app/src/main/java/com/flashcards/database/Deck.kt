@@ -29,7 +29,10 @@ data class Deck(
     @ColumnInfo(name = "use_hint_as_pronunciation") val useHintAsPronunciation: Boolean = false,
     @ColumnInfo(name = "activate_cards_per_day") val activateCardsPerDay: Int = 0,
     @ColumnInfo(name = "last_card_activation") var lastCardActivation: Long = 0,
-    @ColumnInfo(name = "target_time") val targetTime: Long = 5_000      // 5s
+    @ColumnInfo(name = "target_time") val targetTime: Long = 5_000,      // 5s
+    @ColumnInfo(name = "show_hint") val showHint: Boolean = true,
+    @ColumnInfo(name = "show_back") val showBack: Boolean = false,       // In flashes
+    @ColumnInfo(name = "font_size") val fontSize: Int = 64,
 ) {
     fun import(stream: InputStream): Int {
         Scanner(stream).use { scanner ->
@@ -80,7 +83,8 @@ data class Deck(
 
     private fun getPossibleFlashes() =
         System.currentTimeMillis().let { currentTimeMillis ->
-            db().card().getActive(id).map { listOf(false, true).map { back ->
+            db().card().getActive(id).map {
+                (if (showBack) listOf(false, true) else listOf(false)).map { back ->
                 Flash(cardID = it.id, isBack = back, createdAt = currentTimeMillis)
             }}.flatten()
         }

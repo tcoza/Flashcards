@@ -82,7 +82,6 @@ class FlashActivity : ComponentActivity() {
     @Preview
     @Composable
     fun Content(paddingValues: PaddingValues = PaddingValues()) {
-        val fontSize = 64.sp
         val buttonFontSize = 24.sp
 
         val showHint = remember { mutableStateOf(true) }
@@ -99,7 +98,7 @@ class FlashActivity : ComponentActivity() {
                 refreshCard()
             }
             showFront.value = !flash!!.isBack
-            showHint.value = card.hint == null
+            showHint.value = !deck.showHint || card.hint == null
             showBack.value = flash!!.isBack
             stopwatch.reset()
             stopwatch.start()
@@ -125,10 +124,14 @@ class FlashActivity : ComponentActivity() {
                 delay(20)
             }
         }
+
         val tapDetector: suspend PointerInputScope.() -> Unit = {
             if (!cardDone) detectTapGestures(onTap = {
-                showFront.value = true
-                showBack.value = true
+                if (showHint.value) {
+                    showFront.value = true
+                    showBack.value = true
+                }
+                else showHint.value = true
             })
             else detectTapGestures(onDoubleTap = {
                 Intent(this@FlashActivity, EditCardActivity::class.java).apply {
@@ -151,7 +154,7 @@ class FlashActivity : ComponentActivity() {
                 Box(Modifier.fillMaxWidth()) {
                     Text(text,
                         // fontSize directly will do wierd things with multiline
-                        style = TextStyle(fontSize = fontSize),
+                        style = TextStyle(fontSize = deck.fontSize.sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -171,7 +174,7 @@ class FlashActivity : ComponentActivity() {
             Spacer(Modifier.weight(1f))
             ButtonOrText(card.front, "Show front", showFront)
             Spacer(Modifier.weight(1f))
-            if (card.hint != null) {
+            if (deck.showHint && card.hint != null) {
                 ButtonOrText(card.hint!!, "Show hint", showHint)
                 Spacer(Modifier.weight(1f))
             }

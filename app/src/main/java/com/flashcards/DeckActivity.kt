@@ -5,9 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -45,6 +48,8 @@ class DeckActivity : ComponentActivity() {
         yield(Pair(Locale.KOREAN, "Korean"))
     }.toList()
 
+    val fontSize = 20.sp
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     @Preview(showBackground = true)
@@ -54,19 +59,20 @@ class DeckActivity : ComponentActivity() {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            var fontSize = 20.sp
-
             var name by remember { mutableStateOf(deck.name) }
-            var readFront = remember { mutableStateOf(deck.readFront) }
-            var readBack = remember { mutableStateOf(deck.readBack) }
-            var readHint = remember { mutableStateOf(deck.readHint) }
-            var frontLocale = remember { mutableStateOf(deck.frontLocale) }
-            var backLocale = remember { mutableStateOf(deck.backLocale) }
-            var hintLocale = remember { mutableStateOf(deck.hintLocale) }
+            val readFront = remember { mutableStateOf(deck.readFront) }
+            val readBack = remember { mutableStateOf(deck.readBack) }
+            val readHint = remember { mutableStateOf(deck.readHint) }
+            val frontLocale = remember { mutableStateOf(deck.frontLocale) }
+            val backLocale = remember { mutableStateOf(deck.backLocale) }
+            val hintLocale = remember { mutableStateOf(deck.hintLocale) }
             var useHintAsPronunciation by remember { mutableStateOf(deck.useHintAsPronunciation) }
             var activateCardsPerDayStr by remember { mutableStateOf(deck.activateCardsPerDay.toString()) }
             var targetTimeStr by remember { mutableStateOf((deck.targetTime / 1000f).toString()) }
+            var showHint by remember { mutableStateOf(deck.showHint) }
+            var showBack by remember { mutableStateOf(deck.showBack) }
 
             OutlinedTextField(
                 value = name,
@@ -98,18 +104,21 @@ class DeckActivity : ComponentActivity() {
                 )
                 Text(" cards/day", fontSize = fontSize)
             }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Enable hint on flashes: ", fontSize = fontSize)
+                Spacer(Modifier.weight(1f))
+                Switch(checked = showHint, onCheckedChange = { showHint = it })
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Enable back-first flashes: ", fontSize = fontSize)
+                Spacer(Modifier.weight(1f))
+                Switch(checked = showBack, onCheckedChange = { showBack = it })
+            }
             Spacer(Modifier.height(24.dp))
 
-            @Composable
-            fun LabeledSwitch(text: String, value: MutableState<Boolean>, lang: MutableState<String>) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("$text:", fontSize = fontSize, modifier = Modifier.weight(1f))
-                    Switch(checked = value.value, onCheckedChange = { value.value = it }, Modifier.weight(1f))
-                    Spinner("Language",
-                        getLocales().map { Pair(it.first.toString(), it.second) },
-                        lang, Modifier.weight(2f))
-                }
-            }
+
             GroupBox("Text-to-speech", Modifier.fillMaxWidth()) {
                 LabeledSwitch("Front", readFront, frontLocale)
                 Spacer(Modifier.height(4.dp))
@@ -158,12 +167,25 @@ class DeckActivity : ComponentActivity() {
                         useHintAsPronunciation = useHintAsPronunciation,
                         frontLocale = frontLocale.value,
                         backLocale = backLocale.value,
-                        hintLocale = hintLocale.value
+                        hintLocale = hintLocale.value,
+                        showBack = showBack,
+                        showHint = showHint
                     )
                     db().deck().update(deck)
                     finish()
                 }) { Text("Save") }
             }
+        }
+    }
+
+    @Composable
+    fun LabeledSwitch(text: String, value: MutableState<Boolean>, lang: MutableState<String>) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("$text:", fontSize = fontSize, modifier = Modifier.weight(1f))
+            Switch(checked = value.value, onCheckedChange = { value.value = it }, Modifier.weight(1f))
+            Spinner("Language",
+                getLocales().map { Pair(it.first.toString(), it.second) },
+                lang, Modifier.weight(2f))
         }
     }
 
