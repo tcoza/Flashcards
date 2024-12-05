@@ -17,6 +17,7 @@
             android:name=".DeckActivity"
             android:exported="false"
             android:label="@string/title_activity_deck"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Flashcards" />
         <activity
             android:name=".CardsActivity"
@@ -28,21 +29,23 @@
             android:name=".EditCardActivity"
             android:exported="false"
             android:label="@string/title_activity_add_card"
-            android:theme="@style/Theme.Flashcards"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Flashcards" />
         <activity
             android:name=".FlashActivity"
             android:exported="false"
             android:label="@string/title_activity_card"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Flashcards" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Flashcards">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
