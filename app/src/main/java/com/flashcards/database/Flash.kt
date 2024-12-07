@@ -8,6 +8,7 @@ import androidx.room.Ignore
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Update
 import com.flashcards.db
 
 @Dao
@@ -53,8 +54,8 @@ interface FlashDao {
             "ORDER BY flash.created_at")
     fun getAllFromDeck(deck_id: Int, since: Long = 0, until: Long = System.currentTimeMillis()): List<Flash>
 
-    @Insert
-    fun insert(dbo: Flash)
+    @Insert fun insert(dbo: Flash): Long
+    @Update fun update(dbo: Flash)
 }
 
 @Entity(tableName = "flash")

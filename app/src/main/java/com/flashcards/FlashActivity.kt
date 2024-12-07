@@ -79,15 +79,15 @@ class FlashActivity : ComponentActivity() {
     val flashes = mutableListOf<Flash>()
     var card by mutableStateOf(Card.dummy)
     private fun refreshCard() { card = flash?.card() ?: Card.dummy }
+    val showHint = mutableStateOf(true)
+    val showFront = mutableStateOf(true)
+    val showBack = mutableStateOf(true)
+    fun getCardDone() = showFront.value && showBack.value
 
     @Preview
     @Composable
     fun Content(paddingValues: PaddingValues = PaddingValues()) {
         val buttonFontSize = 24.sp
-
-        val showHint = remember { mutableStateOf(true) }
-        val showFront = remember { mutableStateOf(true) }
-        val showBack = remember { mutableStateOf(true) }
 
         fun nextCard() {
             deck.getNextFlash(onlyDue).let {
@@ -113,7 +113,7 @@ class FlashActivity : ComponentActivity() {
         LaunchedEffect(showBack.value) { if (showBack.value) speakBack() }
         LaunchedEffect(showHint.value) { if (showHint.value) speakHint() }
 
-        val cardDone = showFront.value && showBack.value
+        val cardDone = getCardDone()
         if (cardDone && stopwatch.isRunning) stopwatch.pause()
 
         var progress by remember { mutableStateOf(0f) }
@@ -187,14 +187,21 @@ class FlashActivity : ComponentActivity() {
                         val color = if (value) Color.Green else Color.Red
                         val text = if (value) "✔" else "✘"
                         Button({
-                            if (!cardDone) return@Button
-                            db().flash().insert(flash!!.copy(
-                                timeElapsed = stopwatch.getElapsedTimeMillis(),
-                                isCorrect = value
-                            ).apply {
-                                Log.d("flash", this.toString())
-                                flashes.add(this)
-                            })
+                            if (flashes.lastOrNull() !== flash)
+                                flash!!.copy(
+                                    timeElapsed = stopwatch.getElapsedTimeMillis(),
+                                    isCorrect = value
+                                ).apply {
+                                    this.copy(id = db().flash().insert(this).toInt()).apply {
+                                        Log.d("flash", this.toString())
+                                        flashes.add(this)
+                                    }
+                                }
+                            else
+                                flash!!.copy(isCorrect = value).apply {
+                                    db().flash().update(this)
+                                    Log.d("flash", this.toString())
+                                }
                             nextCard()
                         },
                             colors = ButtonDefaults.buttonColors(containerColor = color),
@@ -237,8 +244,15 @@ class FlashActivity : ComponentActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        finish()
-        super.onBackPressed()
+        if (getCardDone() || flashes.isEmpty()) {
+            super.onBackPressed()
+        }
+        else {
+            flash = flashes.last()
+            showFront.value = true
+            showBack.value = true
+            refreshCard()
+        }
     }
 
     override fun finish() {
