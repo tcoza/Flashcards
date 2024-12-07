@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -179,35 +180,50 @@ class FlashActivity : ComponentActivity() {
             ButtonOrText(card.back, "Show back", showBack)
             Spacer(Modifier.weight(1f))
 
-            Row(modifier = Modifier.hideIf(!cardDone)) {
-                @Composable
-                fun ResultButton(value: Boolean) {
-                    val color = if (value) Color.Green else Color.Red
-                    val text = if (value) "✔" else "✘"
-                    Button({
-                        if (!cardDone) return@Button
-                        db().flash().insert(flash!!.copy(
+            if (cardDone) {
+                Row {
+                    @Composable
+                    fun ResultButton(value: Boolean) {
+                        val color = if (value) Color.Green else Color.Red
+                        val text = if (value) "✔" else "✘"
+                        Button({
+                            if (!cardDone) return@Button
+                            db().flash().insert(flash!!.copy(
                                 timeElapsed = stopwatch.getElapsedTimeMillis(),
                                 isCorrect = value
                             ).apply {
                                 Log.d("flash", this.toString())
                                 flashes.add(this)
                             })
-                        nextCard()
-                    },
-                        colors = ButtonDefaults.buttonColors(containerColor = color),
-                        modifier = Modifier.size(96.dp)
-                    ) {
-                        Text(text, fontSize = 48.sp)
+                            nextCard()
+                        },
+                            colors = ButtonDefaults.buttonColors(containerColor = color),
+                            modifier = Modifier.size(96.dp)
+                        ) {
+                            Text(text, fontSize = 48.sp)
+                        }
                     }
-
+                    Spacer(Modifier.weight(2f))
+                    ResultButton(value = false)
+                    Spacer(Modifier.weight(1f))
+                    ResultButton(value = true)
+                    Spacer(Modifier.weight(2f))
                 }
-                Spacer(Modifier.weight(2f))
-                ResultButton(value = false)
-                Spacer(Modifier.weight(1f))
-                ResultButton(value = true)
-                Spacer(Modifier.weight(2f))
             }
+            else if ((showFront.value && deck.readFront) || (showBack.value && deck.readBack)) {
+                Button({
+                    if (showFront.value) speakFront()
+                    if (showBack.value) speakBack()
+                }, modifier = Modifier.size(96.dp)) {
+                    Icon(
+                        painter = painterResource(R.drawable.speaker),
+                        contentDescription = "Speaker",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            else Spacer(Modifier.size(96.dp))   // To avoid change of layout within a flash
+
 //            Text(when {
 //                    !showHint.value -> "Tap to show hint"
 //                    !showFront.value -> "Tap to show front"
