@@ -130,7 +130,10 @@ class EditCardActivity : ComponentActivity() {
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
                         val isNew = card == null
-                        val card = (card ?: Card()).copy(
+                        val card = (card ?: Card(
+                            id = 0,     // Has to be 0
+                            createdAt = System.currentTimeMillis()
+                        )).copy(
                             deckID = deck.value.id,
                             isActive = isActive,
                             front = front,
