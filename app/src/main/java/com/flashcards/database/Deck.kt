@@ -105,11 +105,10 @@ data class Deck(
         val ALPHA = 1 / Math.E
         for (flash in db().flash().getAfter(id, lastFlashInCacheID)) {
             val key = Pair(flash.cardID, flash.isBack)
-            if (!cache.containsKey(key)) cache[key] = Pair(0.0,
-                db().card().getByID(flash.cardID)!!.createdAt)
-            val since = flash.createdAt - cache[key]!!.second
-            var score = (if (flash.isCorrect) f(flash.timeElapsed) else 0.0) * g(since)
-            score = ALPHA * score + (1 - ALPHA) * cache[key]!!.first
+            val value = cache[key] ?: Pair(0.0, flash.card().createdAt)
+            val since = flash.createdAt - value.second
+            var score = 0.0; if (flash.isCorrect) score = f(flash.timeElapsed) * g(since)
+            score = ALPHA * score + (1 - ALPHA) * value.first
             cache[key] = Pair(score, flash.createdAt)
             lastFlashInCacheID = max(lastFlashInCacheID, flash.id)
         }
