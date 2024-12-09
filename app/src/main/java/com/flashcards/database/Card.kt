@@ -10,7 +10,8 @@ data class Card(
     @ColumnInfo(name = "front") val front: String,
     @ColumnInfo(name = "back") val back: String,
     @ColumnInfo(name = "hint") val hint: String? = null,
-    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "use_hint_as_pronunciation") val useHintAsPronunciation: Boolean = false,
+    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
 ) {
     companion object {
         val dummy = Card(-1, -1, true, "Front", "Back")

@@ -55,7 +55,7 @@ class FlashActivity : ComponentActivity() {
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
         if (deck.readFront) frontTTS = MyTTS(this, deck.frontLocale)
         if (deck.readBack) backTTS = MyTTS(this, deck.backLocale)
-        if (deck.readHint || deck.useHintAsPronunciation) hintTTS = MyTTS(this, deck.hintLocale)
+        if (deck.readHint || deck.hintLocale.isNotEmpty()) hintTTS = MyTTS(this, deck.hintLocale)
         onlyDue = deck.getNextFlash(true) != null
         setContent { FlashcardsTheme { Scaffold(content = { Content(it) }) } }     // Scaffold for dark theme
     }
@@ -269,8 +269,7 @@ class FlashActivity : ComponentActivity() {
     fun speakBack() { backTTS?.speak(card.back) }
     fun speakHint() { if (deck.readHint && card.hint != null) hintTTS?.speak(card.hint!!) }
     fun speakFront() {
-        if (deck.useHintAsPronunciation && card.hint != null)
-            hintTTS!!.speak(card.hint!!)   // hintTTS should always be not null here
+        if (card.useHintAsPronunciation && card.hint != null) hintTTS?.speak(card.hint!!)
         else frontTTS?.speak(card.front)
     }
 

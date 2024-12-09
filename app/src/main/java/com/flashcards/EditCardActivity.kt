@@ -52,6 +52,7 @@ class EditCardActivity : ComponentActivity() {
         var front by remember { mutableStateOf((card?.front).emptyIfNull()) }
         var back by remember { mutableStateOf((card?.back).emptyIfNull()) }
         var hint by remember { mutableStateOf((card?.hint).emptyIfNull()) }
+        var useHintAsPronunciation by remember { mutableStateOf(card?.useHintAsPronunciation ?: false) }
         val dupFront = db().card().getByFront(deck.value.id, front)?.let { it.id != card?.id } ?: false
         val dupBack = db().card().getByBack(deck.value.id, back)?.let { it.id != card?.id } ?: false
 
@@ -103,6 +104,12 @@ class EditCardActivity : ComponentActivity() {
                     onCheckedChange = { isActive = it }
                 )
             }
+            Spacer(Modifier.height(4.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Hint as front pronunciation:", fontSize = 20.sp)
+                Spacer(Modifier.weight(1f))
+                Switch(checked = useHintAsPronunciation, onCheckedChange = { useHintAsPronunciation = it })
+            }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth()) {
                 if (card != null) {
@@ -119,21 +126,21 @@ class EditCardActivity : ComponentActivity() {
                 }
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
-                        if (card == null) {
-                            db().card().insert(
-                                Card(0, deck.value.id, isActive,
-                                front, back, hint.nullIfEmpty())
-                            )
+                        val isNew = card == null
+                        val card = (card ?: Card.dummy).copy(
+                            deckID = deck.value.id,
+                            isActive = isActive,
+                            front = front,
+                            back = back,
+                            hint = hint.nullIfEmpty(),
+                            useHintAsPronunciation = useHintAsPronunciation)
+                        if (isNew) {
+                            db().card().insert(card)
                             front = ""; back = ""; hint = ""
                             focusRequester.requestFocus()
                         }
                         else {
-                            db().card().update(card!!.copy(
-                                deckID = deck.value.id,
-                                isActive = isActive,
-                                front = front,
-                                back = back,
-                                hint = hint.nullIfEmpty()))
+                            db().card().update(card)
                             finish()
                         }
                     },

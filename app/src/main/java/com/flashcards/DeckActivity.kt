@@ -68,7 +68,6 @@ class DeckActivity : ComponentActivity() {
             val frontLocale = remember { mutableStateOf(deck.frontLocale) }
             val backLocale = remember { mutableStateOf(deck.backLocale) }
             val hintLocale = remember { mutableStateOf(deck.hintLocale) }
-            var useHintAsPronunciation by remember { mutableStateOf(deck.useHintAsPronunciation) }
             var activateCardsPerDayStr by remember { mutableStateOf(deck.activateCardsPerDay.toString()) }
             var targetTimeStr by remember { mutableStateOf((deck.targetTime / 1000f).toString()) }
             var showHint by remember { mutableStateOf(deck.showHint) }
@@ -125,12 +124,6 @@ class DeckActivity : ComponentActivity() {
                 LabeledSwitch("Hint", readHint, hintLocale)
                 Spacer(Modifier.height(4.dp))
                 LabeledSwitch("Back", readBack, backLocale)
-                Spacer(Modifier.height(4.dp))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Hint as front pronunciation:", fontSize = fontSize)
-                    Spacer(Modifier.weight(1f))
-                    Switch(checked = useHintAsPronunciation, onCheckedChange = { useHintAsPronunciation = it })
-                }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -164,7 +157,6 @@ class DeckActivity : ComponentActivity() {
                         readFront = readFront.value,
                         readBack = readBack.value,
                         readHint = readHint.value,
-                        useHintAsPronunciation = useHintAsPronunciation,
                         frontLocale = frontLocale.value,
                         backLocale = backLocale.value,
                         hintLocale = hintLocale.value,

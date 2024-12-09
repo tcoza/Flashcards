@@ -26,7 +26,6 @@ data class Deck(
     @ColumnInfo(name = "back_locale") val backLocale: String = "",
     @ColumnInfo(name = "read_hint") val readHint: Boolean = false,
     @ColumnInfo(name = "hint_locale") val hintLocale: String = "",
-    @ColumnInfo(name = "use_hint_as_pronunciation") val useHintAsPronunciation: Boolean = false,
     @ColumnInfo(name = "activate_cards_per_day") val activateCardsPerDay: Int = 0,
     @ColumnInfo(name = "last_card_activation") var lastCardActivation: Long = 0,
     @ColumnInfo(name = "target_time") val targetTime: Long = 5_000,      // 5s
