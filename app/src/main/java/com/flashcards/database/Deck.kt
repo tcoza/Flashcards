@@ -63,10 +63,11 @@ data class Deck(
     @Ignore private val DONT_SHOW_LAST_N = 5
     fun getNextFlash(onlyDue: Boolean): Flash? {
         activateCardsIfDue()
+        val currentTimeMillis = System.currentTimeMillis()
         return disableUpdateCache {
             getPossibleFlashes()
+            .filter { !onlyDue || isDue(it, currentTimeMillis) }
             .map { Pair(it, expectedTimeElapsed(it)) }
-            .filter { !onlyDue || it.second > targetTime }
             .run {
                 if (isEmpty()) return@disableUpdateCache null
                 val cardsCount = distinctBy { it.first.cardID }.count()
@@ -78,7 +79,10 @@ data class Deck(
         }
     }
 
-    fun countDue() = disableUpdateCache { getPossibleFlashes().count { expectedTimeElapsed(it) > targetTime } }
+    // timeDue(flash) <= currentTimeMillis
+    fun isDue(flash: Flash, currentTimeMillis: Long = System.currentTimeMillis()) = timeDue(flash) <= currentTimeMillis
+    fun countDue(currentTimeMillis: Long = System.currentTimeMillis()) =
+        disableUpdateCache { getPossibleFlashes().count { isDue(it, currentTimeMillis) } }
 
     private fun getPossibleFlashes() =
         System.currentTimeMillis().let { currentTimeMillis ->

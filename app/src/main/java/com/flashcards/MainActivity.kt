@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flashcards.database.AppDatabase
 import com.flashcards.database.Deck
+import com.flashcards.database.Flash
 import com.flashcards.database.getStatsString
 import com.flashcards.ui.theme.FlashcardsTheme
 import java.io.FileInputStream
