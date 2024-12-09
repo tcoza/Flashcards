@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,7 +72,8 @@ class EditCardActivity : ComponentActivity() {
         Column (
             Modifier
                 .fillMaxSize()
-                .padding(24.dp, 0.dp),
+                .padding(24.dp, 0.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Center
         ) {
             Spinner("Deck", decks, deck)
@@ -127,7 +130,7 @@ class EditCardActivity : ComponentActivity() {
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
                         val isNew = card == null
-                        val card = (card ?: Card.dummy).copy(
+                        val card = (card ?: Card()).copy(
                             deckID = deck.value.id,
                             isActive = isActive,
                             front = front,
@@ -135,8 +138,9 @@ class EditCardActivity : ComponentActivity() {
                             hint = hint.nullIfEmpty(),
                             useHintAsPronunciation = useHintAsPronunciation)
                         if (isNew) {
-                            db().card().insert(card)
+                            db().card().insert(card)   // ID must be 0, for some reason
                             front = ""; back = ""; hint = ""
+                            useHintAsPronunciation = false
                             focusRequester.requestFocus()
                         }
                         else {

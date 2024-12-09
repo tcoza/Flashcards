@@ -5,10 +5,10 @@ import androidx.room.*
 @Entity(tableName = "card")
 data class Card(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    @ColumnInfo(name = "deck_id") val deckID: Int,
+    @ColumnInfo(name = "deck_id") val deckID: Int = -1,
     @ColumnInfo(name = "is_active") val isActive: Boolean = false,
-    @ColumnInfo(name = "front") val front: String,
-    @ColumnInfo(name = "back") val back: String,
+    @ColumnInfo(name = "front") val front: String = "",
+    @ColumnInfo(name = "back") val back: String = "",
     @ColumnInfo(name = "hint") val hint: String? = null,
     @ColumnInfo(name = "use_hint_as_pronunciation") val useHintAsPronunciation: Boolean = false,
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
