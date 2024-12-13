@@ -201,6 +201,7 @@ class FlashActivity : ComponentActivity() {
                                 flash!!.copy(isCorrect = value).apply {
                                     db().flash().update(this)
                                     Log.d("flash", this.toString())
+                                    deck.resetCache()
                                 }
                             nextCard()
                         },

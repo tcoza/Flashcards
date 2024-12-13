@@ -105,6 +105,7 @@ data class Deck(
     // Map<(cardID, isBack), (value, lastFlashTime)>
     @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, Pair<Double, Long>>()
     @Ignore private var lastFlashInCacheID: Int = -1
+    fun resetCache() { cache.clear(); lastFlashInCacheID = -1 }
     fun updateCache() {
         val ALPHA = 1 / Math.E
         for (flash in db().flash().getAfter(id, lastFlashInCacheID)) {
