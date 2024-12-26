@@ -78,7 +78,7 @@ class FlashActivity : ComponentActivity() {
     var flash by mutableStateOf<Flash?>(null)
     val flashes = mutableListOf<Flash>()
     var card by mutableStateOf(Card.dummy)
-    private fun refreshCard() { card = flash?.card() ?: Card.dummy }
+    private fun refreshCard() { card = flash?.let { db().card().getByID(it.cardID) } ?: Card.dummy }
     val showHint = mutableStateOf(true)
     val showFront = mutableStateOf(true)
     val showBack = mutableStateOf(true)
