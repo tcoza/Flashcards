@@ -3,7 +3,7 @@ package com.flashcards.database
 import androidx.room.*
 import com.flashcards.db
 import com.flashcards.emptyIfNull
-import com.flashcards.maxByOrRandom
+import com.flashcards.*
 import com.flashcards.nullIfEmpty
 import java.io.*
 import java.lang.Integer.min
@@ -66,8 +66,8 @@ data class Deck(
         val currentTimeMillis = System.currentTimeMillis()
         return disableUpdateCache {
             getPossibleFlashes()
-            .filter { !onlyDue || isDue(it, currentTimeMillis) }
-            .map { Pair(it, expectedTimeElapsed(it)) }
+            .map { Pair(it, timeDue(it)) }
+            .filter { !onlyDue || it.second <= currentTimeMillis }
             .run {
                 if (isEmpty()) return@disableUpdateCache null
                 val cardsCount = distinctBy { it.first.cardID }.count()
@@ -75,7 +75,7 @@ data class Deck(
                 val last = db().flash().getLastN(id, lastCount).map { it.cardID }
                 filter { !last.contains(it.first.cardID) }
             }
-            .maxByOrRandom { it.second }.first
+            .minByOrRandom { it.second }.first
         }
     }
 
