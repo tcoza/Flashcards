@@ -181,7 +181,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(deck, recountDue) {
                     while (true) {
                         countDue = deck.countDue()
-                        delay(5_000)   // 5 s
+                        delay(500)    // ms
                     }
                 }
                 Text("${countDue ?: "?"}/$countActive/$count", softWrap = false)

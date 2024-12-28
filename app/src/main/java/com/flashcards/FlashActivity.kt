@@ -44,7 +44,7 @@ import kotlin.math.min
 class FlashActivity : ComponentActivity() {
     companion object {
         const val STATS_STR = "STATS"
-        const val POST_DONE_TIME = 1000L  // ms
+        const val DONE_DELAY = 1_000L  // ms
     }
 
     var deck: Deck = Deck.dummy
@@ -114,11 +114,11 @@ class FlashActivity : ComponentActivity() {
         LaunchedEffect(showHint.value) { if (showHint.value) speakHint() }
 
         val cardDone = getCardDone()
-        val postDoneStopwatch = remember { Stopwatch() }
+        val doneStopwatch = remember { Stopwatch() }
         var showResultButtons by remember { mutableStateOf(false) }
         if (cardDone && stopwatch.isRunning) {
             stopwatch.pause()
-            postDoneStopwatch.restart()
+            doneStopwatch.restart()
             showResultButtons = false
         }
 
@@ -126,7 +126,7 @@ class FlashActivity : ComponentActivity() {
         LinearProgressIndicator(progress = progress, Modifier.fillMaxWidth())
         LaunchedEffect(Unit) {
             while (true) {
-                showResultButtons = postDoneStopwatch.getElapsedTimeMillis() >= POST_DONE_TIME
+                showResultButtons = doneStopwatch.getElapsedTimeMillis() >= DONE_DELAY
                 progress = stopwatch.getElapsedTimeMillis() / deck.targetTime.toFloat()
                 progress = min(progress, 1f)
                 delay(20)
