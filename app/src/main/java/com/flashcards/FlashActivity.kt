@@ -44,6 +44,7 @@ import kotlin.math.min
 class FlashActivity : ComponentActivity() {
     companion object {
         const val STATS_STR = "STATS"
+        const val POST_DONE_TIME = 1000L  // ms
     }
 
     var deck: Deck = Deck.dummy
@@ -101,8 +102,7 @@ class FlashActivity : ComponentActivity() {
             showFront.value = !flash!!.isBack
             showHint.value = !deck.showHint || card.hint == null
             showBack.value = flash!!.isBack
-            stopwatch.reset()
-            stopwatch.start()
+            stopwatch.restart()
             if (flash!!.isBack) speakBack() else speakFront()
         }
         if (!isPreview()) {
@@ -114,12 +114,19 @@ class FlashActivity : ComponentActivity() {
         LaunchedEffect(showHint.value) { if (showHint.value) speakHint() }
 
         val cardDone = getCardDone()
-        if (cardDone && stopwatch.isRunning) stopwatch.pause()
+        val postDoneStopwatch = remember { Stopwatch() }
+        var showResultButtons by remember { mutableStateOf(false) }
+        if (cardDone && stopwatch.isRunning) {
+            stopwatch.pause()
+            postDoneStopwatch.restart()
+            showResultButtons = false
+        }
 
         var progress by remember { mutableStateOf(0f) }
         LinearProgressIndicator(progress = progress, Modifier.fillMaxWidth())
         LaunchedEffect(Unit) {
             while (true) {
+                showResultButtons = postDoneStopwatch.getElapsedTimeMillis() >= POST_DONE_TIME
                 progress = stopwatch.getElapsedTimeMillis() / deck.targetTime.toFloat()
                 progress = min(progress, 1f)
                 delay(20)
@@ -180,7 +187,7 @@ class FlashActivity : ComponentActivity() {
             ButtonOrText(card.back, "Show back", showBack)
             Spacer(Modifier.weight(1f))
 
-            if (cardDone) {
+            if (cardDone && showResultButtons) {
                 Row {
                     @Composable
                     fun ResultButton(value: Boolean) {
@@ -218,7 +225,7 @@ class FlashActivity : ComponentActivity() {
                     Spacer(Modifier.weight(2f))
                 }
             }
-            else if ((showFront.value && deck.readFront) || (showBack.value && deck.readBack)) {
+            else if (!cardDone && ((showFront.value && deck.readFront) || (showBack.value && deck.readBack))) {
                 Button({
                     if (showFront.value) speakFront()
                     if (showBack.value) speakBack()
@@ -244,17 +251,17 @@ class FlashActivity : ComponentActivity() {
     }
 
     @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (getCardDone() || flashes.isEmpty()) {
-            super.onBackPressed()
-        }
-        else {
-            flash = flashes.last()
-            showFront.value = true
-            showBack.value = true
-            refreshCard()
-        }
-    }
+//    override fun onBackPressed() {
+//        if (getCardDone() || flashes.isEmpty()) {
+//            super.onBackPressed()
+//        }
+//        else {
+//            flash = flashes.last()
+//            showFront.value = true
+//            showBack.value = true
+//            refreshCard()
+//        }
+//    }
 
     override fun finish() {
         setResult(Activity.RESULT_OK, Intent().apply {

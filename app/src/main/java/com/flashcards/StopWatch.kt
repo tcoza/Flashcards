@@ -32,5 +32,10 @@ class Stopwatch {
         isRunning = false
     }
 
+    fun restart() {
+        reset()
+        start()
+    }
+
     fun getElapsedTimeMillis() = accumulatedTime + if(isRunning) (SystemClock.elapsedRealtime() - startTime) else 0
 }
