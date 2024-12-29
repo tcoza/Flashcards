@@ -54,10 +54,11 @@ class FlashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         deck = db().deck().getByID(intent.extras?.getInt(DECK_ID_INT)!!)!!
+        onlyDue = true //deck.getNextFlash(true) != null
+        if (deck.getNextFlash(onlyDue) == null) finish()
         if (deck.readFront) frontTTS = MyTTS(this, deck.frontLocale)
         if (deck.readBack) backTTS = MyTTS(this, deck.backLocale)
         if (deck.readHint || deck.hintLocale.isNotEmpty()) hintTTS = MyTTS(this, deck.hintLocale)
-        onlyDue = true //deck.getNextFlash(true) != null
         setContent { FlashcardsTheme { Scaffold(content = { Content(it) }) } }     // Scaffold for dark theme
     }
 
