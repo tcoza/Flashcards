@@ -123,14 +123,17 @@ class FlashActivity : ComponentActivity() {
             showResultButtons = false
         }
 
-        var progress by remember { mutableStateOf(0f) }
-        LinearProgressIndicator(progress = progress, Modifier.fillMaxWidth())
-        LaunchedEffect(Unit) {
-            while (true) {
-                showResultButtons = doneStopwatch.getElapsedTimeMillis() >= DONE_DELAY
-                progress = stopwatch.getElapsedTimeMillis() / deck.targetTime.toFloat()
-                progress = min(progress, 1f)
-                delay(20)
+        Column(Modifier.fillMaxWidth()) {
+            //LinearProgressIndicator(progress = 1 / (deck.countDue().toFloat() / flashes.count() + 1), Modifier.fillMaxWidth())
+            var progress by remember { mutableStateOf(0f) }
+            LinearProgressIndicator(progress = progress, Modifier.fillMaxWidth())
+            LaunchedEffect(Unit) {
+                while (true) {
+                    showResultButtons = doneStopwatch.getElapsedTimeMillis() >= DONE_DELAY
+                    progress = stopwatch.getElapsedTimeMillis() / deck.targetTime.toFloat()
+                    progress = min(progress, 1f)
+                    delay(20)
+                }
             }
         }
 
@@ -159,7 +162,7 @@ class FlashActivity : ComponentActivity() {
             @Composable
             fun ButtonOrText(text: String, buttonText: String, state: MutableState<Boolean>) {
                 Box(Modifier.fillMaxWidth()) {
-                    Text(text,
+                    Text(text.replace("\\n", "\n"),
                         // fontSize directly will do wierd things with multiline
                         style = TextStyle(fontSize = deck.fontSize.sp),
                         textAlign = TextAlign.Center,

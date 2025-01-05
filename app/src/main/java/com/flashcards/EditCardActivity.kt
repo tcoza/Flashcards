@@ -55,8 +55,8 @@ class EditCardActivity : ComponentActivity() {
         var back by remember { mutableStateOf((card?.back).emptyIfNull()) }
         var hint by remember { mutableStateOf((card?.hint).emptyIfNull()) }
         var useHintAsPronunciation by remember { mutableStateOf(card?.useHintAsPronunciation ?: false) }
-        val dupFront = db().card().getByFront(deck.value.id, front)?.let { it.id != card?.id } ?: false
-        val dupBack = db().card().getByBack(deck.value.id, back)?.let { it.id != card?.id } ?: false
+        val dupFront = db().card().getByFront(deck.value.id, front.trim())?.let { it.id != card?.id } ?: false
+        val dupBack = deck.value.showBack && db().card().getByBack(deck.value.id, back.trim())?.let { it.id != card?.id } ?: false
 
         LaunchedEffect(deck.value) {
             if (card != null) return@LaunchedEffect
@@ -136,9 +136,9 @@ class EditCardActivity : ComponentActivity() {
                         )).copy(
                             deckID = deck.value.id,
                             isActive = isActive,
-                            front = front,
-                            back = back,
-                            hint = hint.nullIfEmpty(),
+                            front = front.trim(),
+                            back = back.trim(),
+                            hint = hint.trim().nullIfEmpty(),
                             useHintAsPronunciation = useHintAsPronunciation)
                         if (isNew) {
                             db().card().insert(card)   // ID must be 0, for some reason
