@@ -82,7 +82,8 @@ class CardsActivity : ComponentActivity() {
             Modifier
                 .padding(paddingValues)
                 .padding(16.dp, 0.dp, 16.dp, 16.dp),
-            verticalArrangement = Arrangement.Bottom) {
+            verticalArrangement = Arrangement.Bottom
+        ) {
             var searchString by remember { mutableStateOf("") }
             val preview = isPreview()   // Who knows...
             LazyColumn(Modifier.weight(1f)) {
@@ -99,21 +100,29 @@ class CardsActivity : ComponentActivity() {
                             .padding(8.dp)
                     ) {
                         Text("Front", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                        if (wideView) Text("Hint", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                        if (wideView) Text(
+                            "Hint",
+                            modifier = Modifier.weight(1f),
+                            fontWeight = FontWeight.Bold
+                        )
                         Text("Back", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
                         if (wideView)
-                            Text("Due",
+                            Text(
+                                "Due",
                                 modifier = Modifier.width(128.dp)
                                     .clickable {
                                         sortByDue = !sortByDue
                                         refreshCards()
                                     },
                                 fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center)
-                        Text("Active",
+                                textAlign = TextAlign.Center
+                            )
+                        Text(
+                            "Active",
                             modifier = Modifier.width(56.dp),
                             fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center)
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
                 items(if (preview) listOf(Card.dummy, Card.dummy) else filtered) { card ->
@@ -135,14 +144,19 @@ class CardsActivity : ComponentActivity() {
                         if (wideView) Text(
                             if (!card.isActive) ""
                             else {
-                                val timeDueFront = deck.timeDue(Flash(cardID = card.id, isBack = false))
-                                val timeDueBack = deck.timeDue(Flash(cardID = card.id, isBack = true))
-                                val timeDueFrontString = toHumanString(timeDueFront - System.currentTimeMillis())
-                                val timeDueBackString = toHumanString(timeDueBack - System.currentTimeMillis())
+                                val timeDueFront =
+                                    deck.timeDue(Flash(cardID = card.id, isBack = false))
+                                val timeDueBack =
+                                    deck.timeDue(Flash(cardID = card.id, isBack = true))
+                                val timeDueFrontString =
+                                    toHumanString(timeDueFront - System.currentTimeMillis())
+                                val timeDueBackString =
+                                    toHumanString(timeDueBack - System.currentTimeMillis())
                                 "$timeDueFrontString/$timeDueBackString"
                             },
                             modifier = Modifier.width(128.dp),
-                            textAlign = TextAlign.Center)
+                            textAlign = TextAlign.Center
+                        )
                         Checkbox(checked = card.isActive, modifier = Modifier.size(56.dp, 24.dp),
                             onCheckedChange = { checked ->
                                 val index = cards.indexOf(card)
@@ -157,30 +171,8 @@ class CardsActivity : ComponentActivity() {
             OutlinedTextField(value = searchString,
                 onValueChange = { searchString = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search")} )
+                label = { Text("Search") })
         }
-    }
-
-    private fun toHumanString(timeMs: Long): String {
-        if (timeMs < 0) return "-" + toHumanString(-timeMs)
-        return toHumanString(timeMs, listOf(
-            Pair(1, "ms"),
-            Pair(1000, "s"),
-            Pair(60, "m"),
-            Pair(60, "h"),
-            Pair(24, "d"),
-            Pair(7, "w"),
-        ))
-    }
-
-    private fun toHumanString(value: Long, suffixes: List<Pair<Long, String>>): String {
-        var value = value
-        for (i in suffixes.indices) {
-            value /= suffixes[i].first
-            if (i+1 < suffixes.size && value >= suffixes[i+1].first) continue
-            return "${value}${suffixes[i].second}"
-        }
-        throw AssertionError("Should not reach")
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

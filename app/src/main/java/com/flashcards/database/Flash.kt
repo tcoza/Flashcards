@@ -64,8 +64,8 @@ data class Flash(
     @ColumnInfo(name = "card_id") val cardID: Int,
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "is_back") val isBack: Boolean,
-    @ColumnInfo(name = "time_elapsed") val timeElapsed: Long = 0,
-    @ColumnInfo(name = "is_correct") val isCorrect: Boolean = false
+    @ColumnInfo(name = "time_elapsed") var timeElapsed: Long = 0,
+    @ColumnInfo(name = "is_correct") var isCorrect: Boolean = false
 ) {
     fun card() = db().card().getByID(cardID)!!
 }

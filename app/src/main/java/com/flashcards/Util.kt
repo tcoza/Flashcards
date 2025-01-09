@@ -50,6 +50,28 @@ private fun <T, R: Comparable<R>> Iterable<T>.minOrMaxByOrRandom(selector: (T) -
     return values.filter { it.second == value }.random().first
 }
 
+fun toHumanString(timeMs: Long): String {
+    if (timeMs < 0) return "-" + toHumanString(-timeMs)
+    return toHumanString(timeMs, listOf(
+        Pair(1, "ms"),
+        Pair(1000, "s"),
+        Pair(60, "m"),
+        Pair(60, "h"),
+        Pair(24, "d"),
+        Pair(7, "w"),
+    ))
+}
+
+private fun toHumanString(value: Long, suffixes: List<Pair<Long, String>>): String {
+    var value = value
+    for (i in suffixes.indices) {
+        value /= suffixes[i].first
+        if (i+1 < suffixes.size && value >= suffixes[i+1].first) continue
+        return "${value}${suffixes[i].second}"
+    }
+    throw AssertionError("Should not reach")
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> Spinner(

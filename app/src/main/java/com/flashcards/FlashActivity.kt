@@ -119,6 +119,7 @@ class FlashActivity : ComponentActivity() {
         var showResultButtons by remember { mutableStateOf(false) }
         if (cardDone && stopwatch.isRunning) {
             stopwatch.pause()
+            flash?.timeElapsed = stopwatch.getElapsedTimeMillis()
             doneStopwatch.restart()
             showResultButtons = false
         }
@@ -196,30 +197,27 @@ class FlashActivity : ComponentActivity() {
                     @Composable
                     fun ResultButton(value: Boolean) {
                         val color = if (value) Color.Green else Color.Red
-                        val text = if (value) "✔" else "✘"
+                        //val text = if (value) "✔" else "✘"
+                        val timeDue = deck.nextTimeDue(flash!!.copy(isCorrect = value))
+                        val text = toHumanString(timeDue - System.currentTimeMillis())
                         Button({
+                            flash?.isCorrect = value
                             if (flashes.lastOrNull() !== flash)
-                                flash!!.copy(
-                                    timeElapsed = stopwatch.getElapsedTimeMillis(),
-                                    isCorrect = value
-                                ).apply {
-                                    this.copy(id = db().flash().insert(this).toInt()).apply {
-                                        Log.d("flash", this.toString())
-                                        flashes.add(this)
-                                    }
-                                }
-                            else
-                                flash!!.copy(isCorrect = value).apply {
-                                    db().flash().update(this)
+                                flash!!.copy(id = db().flash().insert(flash!!).toInt()).apply {
                                     Log.d("flash", this.toString())
-                                    deck.resetCache()
+                                    flashes.add(this)
                                 }
+                            else {
+                                db().flash().update(flash!!)
+                                Log.d("flash", flash!!.toString())
+                                deck.resetCache()
+                            }
                             nextCard()
                         },
                             colors = ButtonDefaults.buttonColors(containerColor = color),
                             modifier = Modifier.size(96.dp)
                         ) {
-                            Text(text, fontSize = 48.sp)
+                            Text(text, fontSize = 20.sp)
                         }
                     }
                     Spacer(Modifier.weight(2f))
