@@ -102,30 +102,31 @@ data class Deck(
     private fun g_inv(value: Double) = ((Math.E.pow(value) - 1) * targetTime).toLong()
 
     @Ignore public var autoUpdateCache: Boolean = true
-    // Map<(cardID, isBack), (value, lastFlashTime)>
-    @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, Pair<Double, Long>>()
+    // Map<(cardID, isBack), CacheEntry>
+    private class CacheEntry(val value: Double = 0.0, val lastFlashTime: Long)
+    @Ignore private val cache = mutableMapOf<Pair<Int, Boolean>, CacheEntry>()
     @Ignore private var lastFlashInCacheID: Int = -1
     fun resetCache() { cache.clear(); lastFlashInCacheID = -1 }
     fun updateCache() {
         for (flash in db().flash().getAfter(id, lastFlashInCacheID)) {
             val key = Pair(flash.cardID, flash.isBack)
-            cache[key] = nextEntry(cache[key] ?: Pair(0.0, flash.card().createdAt), flash)
+            cache[key] = nextEntry(cache[key] ?: CacheEntry(lastFlashTime = flash.card().createdAt), flash)
             lastFlashInCacheID = max(lastFlashInCacheID, flash.id)
         }
     }
-    private fun nextEntry(entry: Pair<Double, Long>, flash: Flash): Pair<Double, Long> {
+    private fun nextEntry(entry: CacheEntry, flash: Flash): CacheEntry {
         val ALPHA = 1 / Math.E
-        val since = flash.createdAt - entry.second
+        val since = flash.createdAt - entry.lastFlashTime
         var score = 0.0; if (flash.isCorrect) score = f(flash.timeElapsed) * g(since)
-        score = ALPHA * score + (1 - ALPHA) * entry.first
-        return Pair(score, flash.createdAt)
+        score = ALPHA * score + (1 - ALPHA) * entry.value
+        return CacheEntry(score, flash.createdAt)
     }
 
     // first: x(correct) * f(timeElapsed) * g(timeSincePrevFlash), exponential rolling average
     // second: lastFlash?.createdAt ?: card.createdAt
-    private fun getCacheEntry(flash: Flash): Pair<Double, Long> {
+    private fun getCacheEntry(flash: Flash): CacheEntry {
         if (autoUpdateCache) updateCache()
-        return cache[Pair(flash.cardID, flash.isBack)] ?: Pair(0.0, flash.card().createdAt)
+        return cache[Pair(flash.cardID, flash.isBack)] ?: CacheEntry(lastFlashTime = flash.card().createdAt)
     }
 
     private fun <T> disableUpdateCache(action: () -> T): T {
@@ -138,21 +139,12 @@ data class Deck(
         finally { autoUpdateCache = save }
     }
 
-    fun expectedTimeElapsed(flash: Flash) =
-        getCacheEntry(flash)
-        .let { f_inv(it.first / g(flash.createdAt - it.second)) }
-
     // Time at which expectedTimeElapsed() returns targetTime
-    fun timeDue(flash: Flash) =
-        getCacheEntry(flash)
-        .let { g_inv(it.first / f(targetTime)) + it.second }
-
+    private fun timeDue(entry: CacheEntry) = g_inv(entry.value / f(targetTime)) + entry.lastFlashTime
+    fun timeDue(flash: Flash) = timeDue(getCacheEntry(flash))
     fun timeDue(card: Card) = listOf(false, true).map { Flash(cardID = card.id, isBack = it) }.minOf { timeDue(it) }
-
     // Time due if flash is added.
-    fun nextTimeDue(flash: Flash) =
-        nextEntry(getCacheEntry(flash), flash)
-        .let { g_inv(it.first / f(targetTime)) + it.second }
+    fun nextTimeDue(flash: Flash) = timeDue(nextEntry(getCacheEntry(flash), flash))
 
     private fun activateCardsIfDue() {
         if (activateCardsPerDay <= 0) return
