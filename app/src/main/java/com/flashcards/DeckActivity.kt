@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flashcards.database.Deck
 import com.flashcards.ui.theme.FlashcardsTheme
-import java.lang.NumberFormatException
 import java.util.Locale
 
 class DeckActivity : ComponentActivity() {
@@ -48,7 +46,7 @@ class DeckActivity : ComponentActivity() {
         yield(Pair(Locale.KOREAN, "Korean"))
     }.toList()
 
-    val fontSize = 20.sp
+    private val textFontSize = 20.sp
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -72,6 +70,7 @@ class DeckActivity : ComponentActivity() {
             var targetTimeStr by remember { mutableStateOf((deck.targetTime / 1000f).toString()) }
             var showHint by remember { mutableStateOf(deck.showHint) }
             var showBack by remember { mutableStateOf(deck.showBack) }
+            var fontSize by remember { mutableStateOf(deck.fontSize.toString()) }
 
             OutlinedTextField(
                 value = name,
@@ -82,7 +81,7 @@ class DeckActivity : ComponentActivity() {
             )
             Spacer(Modifier.height(24.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Target time per card: ", fontSize = fontSize)
+                Text("Target time per card: ", fontSize = textFontSize)
                 Spacer(Modifier.weight(1f))
                 TextField(
                     value = targetTimeStr,
@@ -90,33 +89,41 @@ class DeckActivity : ComponentActivity() {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.size(96.dp, 56.dp)
                 )
-                Text(" s", fontSize = fontSize)
+                Text(" s", fontSize = textFontSize)
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Auto-activate ", fontSize = fontSize)
+                Text("Auto-activate ", fontSize = textFontSize)
                 TextField(
                     value = activateCardsPerDayStr,
                     onValueChange = { activateCardsPerDayStr = it },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.size(64.dp, 56.dp)
                 )
-                Text(" cards/day", fontSize = fontSize)
+                Text(" cards/day", fontSize = textFontSize)
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Enable hint on flashes: ", fontSize = fontSize)
+                Text("Enable hint on flashes: ", fontSize = textFontSize)
                 Spacer(Modifier.weight(1f))
                 Switch(checked = showHint, onCheckedChange = { showHint = it })
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Enable back-first flashes: ", fontSize = fontSize)
+                Text("Enable back-first flashes: ", fontSize = textFontSize)
                 Spacer(Modifier.weight(1f))
                 Switch(checked = showBack, onCheckedChange = { showBack = it })
             }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Font size: ", fontSize = textFontSize)
+                Spacer(Modifier.weight(1f))
+                TextField(fontSize,
+                    onValueChange = { fontSize = it },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(64.dp))
+            }
             Spacer(Modifier.height(24.dp))
-
 
             GroupBox("Text-to-speech", Modifier.fillMaxWidth()) {
                 LabeledSwitch("Front", readFront, frontLocale)
@@ -147,7 +154,8 @@ class DeckActivity : ComponentActivity() {
                 Button(
                     enabled =
                         targetTimeStr.toFloatOrNull() != null &&
-                        activateCardsPerDayStr.toIntOrNull() != null,
+                        activateCardsPerDayStr.toIntOrNull() != null &&
+                        fontSize.toIntOrNull() != null,
                     onClick = {
                     deck = db().deck().getByID(deck.id)!!
                     deck = deck.copy(
@@ -161,7 +169,8 @@ class DeckActivity : ComponentActivity() {
                         backLocale = backLocale.value,
                         hintLocale = hintLocale.value,
                         showBack = showBack,
-                        showHint = showHint
+                        showHint = showHint,
+                        fontSize = fontSize.toInt()
                     )
                     db().deck().update(deck)
                     finish()
@@ -173,7 +182,7 @@ class DeckActivity : ComponentActivity() {
     @Composable
     fun LabeledSwitch(text: String, value: MutableState<Boolean>, lang: MutableState<String>) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("$text:", fontSize = fontSize, modifier = Modifier.weight(1f))
+            Text("$text:", fontSize = textFontSize, modifier = Modifier.weight(1f))
             Switch(checked = value.value, onCheckedChange = { value.value = it }, Modifier.weight(1f))
             Spinner("Language",
                 getLocales().map { Pair(it.first.toString(), it.second) },
