@@ -10,6 +10,9 @@ data class Card(
     @ColumnInfo(name = "front") val front: String = "",
     @ColumnInfo(name = "back") val back: String = "",
     @ColumnInfo(name = "hint") val hint: String? = null,
+    @ColumnInfo(name = "front_size") val frontSize: Int? = null,    // Font size ?: deck.fontSize
+    @ColumnInfo(name = "back_size") val backSize: Int? = null,      // ''
+    @ColumnInfo(name = "hint_size") val hintSize: Int? = null,      // ''
     @ColumnInfo(name = "use_hint_as_pronunciation") val useHintAsPronunciation: Boolean = false,
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
 ) {

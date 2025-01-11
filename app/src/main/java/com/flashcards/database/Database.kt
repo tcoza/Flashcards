@@ -10,7 +10,7 @@ import java.util.Locale
 @Database(
     entities = [Deck::class, Card::class, Flash::class],
     exportSchema = false,
-    version = 7)
+    version = 8)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun deck(): DeckDao
     abstract fun card(): CardDao
@@ -32,8 +32,11 @@ abstract class AppDatabase : RoomDatabase() {
  * Use TEXT for String fields
  */
 
-fun SupportSQLiteDatabase.addColumn(table: String, column: String, type: String, default: String, nullable: Boolean = false) =
-    this.execSQL("ALTER TABLE $table ADD COLUMN $column $type ${if (nullable) "" else "NOT"} NULL DEFAULT $default")
+// For nullable columns (default null)
+fun SupportSQLiteDatabase.addColumn(table: String, column: String, type: String) =
+    this.execSQL("ALTER TABLE $table ADD COLUMN $column $type NULL")
+fun SupportSQLiteDatabase.addColumn(table: String, column: String, type: String, default: String) =
+    this.execSQL("ALTER TABLE $table ADD COLUMN $column $type NOT NULL DEFAULT $default")
 
 val migrations = arrayOf(
     object : Migration(1, 2) {
@@ -75,6 +78,13 @@ val migrations = arrayOf(
         override fun migrate(database: SupportSQLiteDatabase) = database.run {
             this.execSQL("ALTER TABLE deck DROP COLUMN use_hint_as_pronunciation")
             addColumn("card", "use_hint_as_pronunciation", "INT", "0")
+        }
+    },
+    object : Migration(7, 8) {
+        override fun migrate(database: SupportSQLiteDatabase) = database.run {
+            addColumn("card", "front_size", "INT")
+            addColumn("card", "back_size", "INT")
+            addColumn("card", "hint_size", "INT")
         }
     }
 )

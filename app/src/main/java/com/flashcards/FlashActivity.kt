@@ -161,11 +161,11 @@ class FlashActivity : ComponentActivity() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             @Composable
-            fun ButtonOrText(text: String, buttonText: String, state: MutableState<Boolean>) {
+            fun ButtonOrText(text: String, buttonText: String, fontSize: Int?, state: MutableState<Boolean>) {
                 Box(Modifier.fillMaxWidth()) {
                     Text(text.replace("\\n", "\n"),
                         // fontSize directly will do wierd things with multiline
-                        style = TextStyle(fontSize = deck.fontSize.sp),
+                        style = TextStyle(fontSize = (fontSize ?: deck.fontSize).sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -183,13 +183,13 @@ class FlashActivity : ComponentActivity() {
             }
 
             Spacer(Modifier.weight(1f))
-            ButtonOrText(card.front, "Show front", showFront)
+            ButtonOrText(card.front, "Show front", card.frontSize, showFront)
             Spacer(Modifier.weight(1f))
             if (deck.showHint && card.hint != null) {
-                ButtonOrText(card.hint!!, "Show hint", showHint)
+                ButtonOrText(card.hint!!, "Show hint", card.hintSize, showHint)
                 Spacer(Modifier.weight(1f))
             }
-            ButtonOrText(card.back, "Show back", showBack)
+            ButtonOrText(card.back, "Show back", card.backSize, showBack)
             Spacer(Modifier.weight(1f))
 
             if (cardDone && showResultButtons) {

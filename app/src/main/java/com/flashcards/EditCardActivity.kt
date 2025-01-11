@@ -55,6 +55,9 @@ class EditCardActivity : ComponentActivity() {
         var back by remember { mutableStateOf((card?.back).emptyIfNull()) }
         var hint by remember { mutableStateOf((card?.hint).emptyIfNull()) }
         var useHintAsPronunciation by remember { mutableStateOf(card?.useHintAsPronunciation ?: false) }
+        var frontSize by remember { mutableStateOf(card?.frontSize?.toString() ?: "") }
+        var backSize by remember { mutableStateOf(card?.backSize?.toString() ?: "") }
+        var hintSize by remember { mutableStateOf(card?.hintSize?.toString() ?: "") }
         val dupFront = db().card().getByFront(deck.value.id, front.trim())?.let { it.id != card?.id } ?: false
         val dupBack = deck.value.showBack && db().card().getByBack(deck.value.id, back.trim())?.let { it.id != card?.id } ?: false
 
@@ -78,24 +81,46 @@ class EditCardActivity : ComponentActivity() {
         ) {
             Spinner("Deck", decks, deck)
             Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                label = { Text("Front") },
-                value = front, onValueChange = { front = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                colors = if (dupFront) errorColors else TextFieldDefaults.outlinedTextFieldColors())
+            Row(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    label = { Text("Front") },
+                    value = front, onValueChange = { front = it },
+                    modifier = Modifier.weight(1f).focusRequester(focusRequester),
+                    colors = if (dupFront) errorColors else TextFieldDefaults.outlinedTextFieldColors())
+                Spacer(Modifier.width(4.dp))
+                OutlinedTextField(
+                    value = frontSize,
+                    onValueChange = { frontSize = it },
+                    label = { Text("Size") },
+                    modifier = Modifier.width(64.dp))
+            }
             Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                label = { Text("Hint") },
-                value = hint, onValueChange = { hint = it },
-                modifier = Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    label = { Text("Hint") },
+                    value = hint, onValueChange = { hint = it },
+                    modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(4.dp))
+                OutlinedTextField(
+                    value = hintSize,
+                    onValueChange = { hintSize = it },
+                    label = { Text("Size") },
+                    modifier = Modifier.width(64.dp))
+            }
             Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                label = { Text("Back") },
-                value = back, onValueChange = { back = it },
-                modifier = Modifier.fillMaxWidth(),
-                colors = if (dupBack) errorColors else TextFieldDefaults.outlinedTextFieldColors())
+            Row(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    label = { Text("Back") },
+                    value = back, onValueChange = { back = it },
+                    modifier = Modifier.weight(1f),
+                    colors = if (dupBack) errorColors else TextFieldDefaults.outlinedTextFieldColors())
+                Spacer(Modifier.width(4.dp))
+                OutlinedTextField(
+                    value = backSize,
+                    onValueChange = { backSize = it },
+                    label = { Text("Size") },
+                    modifier = Modifier.width(64.dp))
+            }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -139,6 +164,9 @@ class EditCardActivity : ComponentActivity() {
                             front = front.trim(),
                             back = back.trim(),
                             hint = hint.trim().nullIfEmpty(),
+                            frontSize = frontSize.toIntOrNull(),
+                            backSize = backSize.toIntOrNull(),
+                            hintSize = hintSize.toIntOrNull(),
                             useHintAsPronunciation = useHintAsPronunciation)
                         if (isNew) {
                             db().card().insert(card)   // ID must be 0, for some reason
