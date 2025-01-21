@@ -84,10 +84,11 @@ data class Deck(
     fun countDue(currentTimeMillis: Long = System.currentTimeMillis()) =
         disableUpdateCache { getPossibleFlashes().count { isDue(it, currentTimeMillis) } }
 
+    private fun isBackOptions() = if (showBack) listOf(false, true) else listOf(false)
     private fun getPossibleFlashes() =
         System.currentTimeMillis().let { currentTimeMillis ->
             db().card().getActive(id).map {
-                (if (showBack) listOf(false, true) else listOf(false)).map { back ->
+                isBackOptions().map { back ->
                 Flash(cardID = it.id, isBack = back, createdAt = currentTimeMillis)
             }}.flatten()
         }
@@ -142,7 +143,7 @@ data class Deck(
     // Time at which expectedTimeElapsed() returns targetTime
     private fun timeDue(entry: CacheEntry) = g_inv(entry.value / f(targetTime)) + entry.lastFlashTime
     fun timeDue(flash: Flash) = timeDue(getCacheEntry(flash)) + if (flash.isBack) 1 else 0
-    fun timeDue(card: Card) = listOf(false, true).map { Flash(cardID = card.id, isBack = it) }.minOf { timeDue(it) }
+    fun timeDue(card: Card) = isBackOptions().map { Flash(cardID = card.id, isBack = it) }.minOf { timeDue(it) }
     // Time due if flash is added.
     fun nextTimeDue(flash: Flash) = timeDue(nextEntry(getCacheEntry(flash), flash))
 

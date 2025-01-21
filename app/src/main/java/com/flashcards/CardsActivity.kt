@@ -152,7 +152,8 @@ class CardsActivity : ComponentActivity() {
                                     toHumanString(timeDueFront - System.currentTimeMillis())
                                 val timeDueBackString =
                                     toHumanString(timeDueBack - System.currentTimeMillis())
-                                "$timeDueFrontString/$timeDueBackString"
+                                if (!deck.showBack) timeDueFrontString
+                                else "$timeDueFrontString/$timeDueBackString"
                             },
                             modifier = Modifier.width(128.dp),
                             textAlign = TextAlign.Center
