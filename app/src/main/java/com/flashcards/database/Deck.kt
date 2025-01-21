@@ -75,7 +75,7 @@ data class Deck(
                 val last = db().flash().getLastN(id, lastCount).map { it.cardID }
                 filter { !last.contains(it.first.cardID) }
             }
-            .minByOrRandom { it.second }.first
+            .minBy { it.second }.first
         }
     }
 
@@ -141,7 +141,7 @@ data class Deck(
 
     // Time at which expectedTimeElapsed() returns targetTime
     private fun timeDue(entry: CacheEntry) = g_inv(entry.value / f(targetTime)) + entry.lastFlashTime
-    fun timeDue(flash: Flash) = timeDue(getCacheEntry(flash))
+    fun timeDue(flash: Flash) = timeDue(getCacheEntry(flash)) + if (flash.isBack) 1 else 0
     fun timeDue(card: Card) = listOf(false, true).map { Flash(cardID = card.id, isBack = it) }.minOf { timeDue(it) }
     // Time due if flash is added.
     fun nextTimeDue(flash: Flash) = timeDue(nextEntry(getCacheEntry(flash), flash))
