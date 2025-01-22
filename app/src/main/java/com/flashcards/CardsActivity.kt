@@ -56,7 +56,7 @@ class CardsActivity : ComponentActivity() {
             contentResolver.openOutputStream(uri)!!.use {
                 deck.export(it)
                 val count = db().card().count(deck.id)
-                showToast("Exported ${count} cards")
+                showToast("Exported $count cards")
             }
         }}
     }

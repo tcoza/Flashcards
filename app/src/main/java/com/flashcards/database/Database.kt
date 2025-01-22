@@ -10,7 +10,7 @@ import java.util.Locale
 @Database(
     entities = [Deck::class, Card::class, Flash::class],
     exportSchema = false,
-    version = 8)
+    version = 9)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun deck(): DeckDao
     abstract fun card(): CardDao
@@ -71,7 +71,7 @@ val migrations = arrayOf(
         override fun migrate(database: SupportSQLiteDatabase) = database.run {
             addColumn("deck", "show_hint", "INT", "1")
             addColumn("deck", "show_back", "INT", "0")
-            addColumn("deck", "font_size", "INT", Deck(name = "").fontSize.toString())
+            addColumn("deck", "font_size", "INT", Deck(name = "").frontFontSize.toString())
         }
     },
     object : Migration(6, 7) {
@@ -85,6 +85,14 @@ val migrations = arrayOf(
             addColumn("card", "front_size", "INT")
             addColumn("card", "back_size", "INT")
             addColumn("card", "hint_size", "INT")
+        }
+    },
+    object : Migration(8, 9) {
+        override fun migrate(database: SupportSQLiteDatabase) = database.run {
+            this.execSQL("ALTER TABLE deck DROP COLUMN font_size")
+            addColumn("deck", "front_size", "INT", Deck(name = "").frontFontSize.toString())
+            addColumn("deck", "back_size", "INT", Deck(name = "").backFontSize.toString())
+            addColumn("deck", "hint_size", "INT", Deck(name = "").hintFontSize.toString())
         }
     }
 )

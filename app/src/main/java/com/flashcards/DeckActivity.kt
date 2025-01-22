@@ -70,7 +70,9 @@ class DeckActivity : ComponentActivity() {
             var targetTimeStr by remember { mutableStateOf((deck.targetTime / 1000f).toString()) }
             var showHint by remember { mutableStateOf(deck.showHint) }
             var showBack by remember { mutableStateOf(deck.showBack) }
-            var fontSize by remember { mutableStateOf(deck.fontSize.toString()) }
+            var frontFontSize = remember { mutableStateOf(deck.frontFontSize.toString()) }
+            var backFontSize = remember { mutableStateOf(deck.backFontSize.toString()) }
+            var hintFontSize = remember { mutableStateOf(deck.hintFontSize.toString()) }
 
             OutlinedTextField(
                 value = name,
@@ -114,24 +116,13 @@ class DeckActivity : ComponentActivity() {
                 Spacer(Modifier.weight(1f))
                 Switch(checked = showBack, onCheckedChange = { showBack = it })
             }
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Font size: ", fontSize = textFontSize)
-                Spacer(Modifier.weight(1f))
-                TextField(fontSize,
-                    onValueChange = { fontSize = it },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.width(64.dp))
-            }
             Spacer(Modifier.height(24.dp))
 
-            GroupBox("Text-to-speech", Modifier.fillMaxWidth()) {
-                LabeledSwitch("Front", readFront, frontLocale)
-                Spacer(Modifier.height(4.dp))
-                LabeledSwitch("Hint", readHint, hintLocale)
-                Spacer(Modifier.height(4.dp))
-                LabeledSwitch("Back", readBack, backLocale)
-            }
+            LabeledSwitch("Front", readFront, frontLocale, frontFontSize)
+            Spacer(Modifier.height(4.dp))
+            LabeledSwitch("Hint", readHint, hintLocale, hintFontSize)
+            Spacer(Modifier.height(4.dp))
+            LabeledSwitch("Back", readBack, backLocale, backFontSize)
 
             Spacer(Modifier.height(24.dp))
 
@@ -155,7 +146,9 @@ class DeckActivity : ComponentActivity() {
                     enabled =
                         targetTimeStr.toFloatOrNull() != null &&
                         activateCardsPerDayStr.toIntOrNull() != null &&
-                        fontSize.toIntOrNull() != null,
+                        frontFontSize.value.toIntOrNull() != null &&
+                        backFontSize.value.toIntOrNull() != null &&
+                        hintFontSize.value.toIntOrNull() != null,
                     onClick = {
                     deck = db().deck().getByID(deck.id)!!
                     deck = deck.copy(
@@ -170,7 +163,9 @@ class DeckActivity : ComponentActivity() {
                         hintLocale = hintLocale.value,
                         showBack = showBack,
                         showHint = showHint,
-                        fontSize = fontSize.toInt()
+                        frontFontSize = frontFontSize.value.toInt(),
+                        backFontSize = backFontSize.value.toInt(),
+                        hintFontSize = hintFontSize.value.toInt(),
                     )
                     db().deck().update(deck)
                     finish()
@@ -179,14 +174,21 @@ class DeckActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun LabeledSwitch(text: String, value: MutableState<Boolean>, lang: MutableState<String>) {
+    fun LabeledSwitch(text: String, value: MutableState<Boolean>, lang: MutableState<String>, fontSize: MutableState<String>) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("$text:", fontSize = textFontSize, modifier = Modifier.weight(1f))
-            Switch(checked = value.value, onCheckedChange = { value.value = it }, Modifier.weight(1f))
+            Text("$text:", fontSize = textFontSize, modifier = Modifier.width(75.dp))
+            Switch(checked = value.value, onCheckedChange = { value.value = it })
+            Spacer(Modifier.width(8.dp))
             Spinner("Language",
                 getLocales().map { Pair(it.first.toString(), it.second) },
                 lang, Modifier.weight(2f))
+            Spacer(Modifier.width(8.dp))
+            TextField(fontSize.value,
+                onValueChange = { fontSize.value = it },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.width(65.dp))
         }
     }
 

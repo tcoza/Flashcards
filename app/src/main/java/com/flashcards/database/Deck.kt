@@ -31,7 +31,9 @@ data class Deck(
     @ColumnInfo(name = "target_time") val targetTime: Long = 5_000,      // 5s
     @ColumnInfo(name = "show_hint") val showHint: Boolean = true,
     @ColumnInfo(name = "show_back") val showBack: Boolean = false,       // In flashes
-    @ColumnInfo(name = "font_size") val fontSize: Int = 64,
+    @ColumnInfo(name = "front_size") val frontFontSize: Int = 64,
+    @ColumnInfo(name = "back_size") val backFontSize: Int = 64,
+    @ColumnInfo(name = "hint_size") val hintFontSize: Int = 64
 ) {
     fun import(stream: InputStream): Int {
         Scanner(stream).use { scanner ->
