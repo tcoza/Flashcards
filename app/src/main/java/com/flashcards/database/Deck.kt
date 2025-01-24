@@ -46,7 +46,7 @@ data class Deck(
                     0, id, false, fields[0], fields[1],
                     fields.getOrNull(2)?.nullIfEmpty())
                 if (db().card().getByFront(id, card.front) != null) continue
-                if (db().card().getByBack(id, card.back) != null) continue
+                if (showBack && db().card().getByBack(id, card.back) != null) continue
                 db().card().insert(card)
                 count++
             }
