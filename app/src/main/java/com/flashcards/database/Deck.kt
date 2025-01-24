@@ -64,7 +64,6 @@ data class Deck(
 
     @Ignore private val DONT_SHOW_LAST_N = 5
     fun getNextFlash(onlyDue: Boolean): Flash? {
-        activateCardsIfDue()
         val currentTimeMillis = System.currentTimeMillis()
         return disableUpdateCache {
             getPossibleFlashes()
@@ -87,13 +86,15 @@ data class Deck(
         disableUpdateCache { getPossibleFlashes().count { isDue(it, currentTimeMillis) } }
 
     private fun isBackOptions() = if (showBack) listOf(false, true) else listOf(false)
-    private fun getPossibleFlashes() =
-        System.currentTimeMillis().let { currentTimeMillis ->
-            db().card().getActive(id).map {
-                isBackOptions().map { back ->
+    private fun getPossibleFlashes(): List<Flash> {
+        activateCardsIfDue()
+        val currentTimeMillis =System.currentTimeMillis()
+        return db().card().getActive(id).map {
+            isBackOptions().map { back ->
                 Flash(cardID = it.id, isBack = back, createdAt = currentTimeMillis)
             }}.flatten()
-        }
+    }
+
 
     // f should be positive, decreasing, with an asymptote at y=0
     private fun f(timeElapsed: Long) = 2.0.pow(-timeElapsed.toDouble() / targetTime)
@@ -160,6 +161,8 @@ data class Deck(
         lastCardActivation = System.currentTimeMillis()
         db().deck().update(this)
     }
+
+    fun getActiveKnowledgeIndex() = disableUpdateCache { getPossibleFlashes().map { getCacheEntry(it).value }.average() }
 
     companion object {
         val dummy = Deck(0, "Deck")

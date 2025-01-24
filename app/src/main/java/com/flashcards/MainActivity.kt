@@ -271,11 +271,13 @@ class MainActivity : ComponentActivity() {
                 val minDate = Instant.ofEpochMilli(firstTime).atZone(ZoneId.systemDefault()).toLocalDate()
                 var date = LocalDate.now()
                 Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text("Active knowledge index: ${String.format("%.5f", deck.getActiveKnowledgeIndex())}")
+                    Spacer(Modifier.height(12.dp))
                     do {
                         val since = date.toEpochMilli()
                         val until = date.plusDays(1).toEpochMilli()
                         val flashes = db().flash().getAllFromDeck(deck.id, since, until)
-                        if (!flashes.isEmpty())
+                        if (flashes.isNotEmpty())
                             Row(Modifier.fillMaxWidth()) {
                                 Text("${date.dayOfMonth}/${date.monthValue}")
                                 Spacer(Modifier.weight(1f))
