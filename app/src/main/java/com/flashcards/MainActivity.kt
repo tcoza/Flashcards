@@ -193,7 +193,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             if (isSelected) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
