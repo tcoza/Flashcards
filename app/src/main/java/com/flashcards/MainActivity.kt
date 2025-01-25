@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -186,44 +188,34 @@ class MainActivity : ComponentActivity() {
                 }
                 Text("${countDue ?: "?"}/$countActive/$count", softWrap = false)
                 Spacer(Modifier.width(8.dp))
-                SmallButton(if (isSelected) "▲" else "▼") {
+                SmallButton("", if (isSelected) R.drawable.arrow_up else R.drawable.arrow_down) {
                     selected.value = if (isSelected) -1 else index
                 }
             }
             if (isSelected) {
-                val todayStart = LocalDate.now().toEpochMilli()
-                val flashes = db().flash().getAllFromDeck(deck.id, todayStart)
-                if (flashes.any()) {
-                    Spacer(Modifier.height(12.dp))
-                    val showDialog = remember { mutableStateOf(false) }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Today:")
-                        Spacer(Modifier.weight(1f))
-                        Text(flashes.getStatsString())
-                        Spacer(Modifier.width(8.dp))
-                        SmallButton("...") { showDialog.value = true }
-                        StatsDialog(deck, showDialog)
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SmallButton("View Cards") {
-                        Intent(this@MainActivity, CardsActivity::class.java).apply {
-                            putExtra(DECK_ID_INT, deck.id)
-                            this@MainActivity.startActivity(this)
-                        }
-                    }
+                    val showDialog = remember { mutableStateOf(false) }
+                    SmallButton("Stats", R.drawable.chart) { showDialog.value = true }
+                    StatsDialog(deck, showDialog)
                     Spacer(Modifier.width(8.dp))
-                    SmallButton("Options") {
+                    SmallButton("Options", R.drawable.gear) {
                         Intent(this@MainActivity, DeckActivity::class.java).apply {
                             putExtra(DECK_ID_INT, deck.id)
                             this@MainActivity.startActivity(this)
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    SmallButton("+ Add cards", Color(0xFF11BB22)) {
+                    SmallButton("View Cards", R.drawable.list) {
+                        Intent(this@MainActivity, CardsActivity::class.java).apply {
+                            putExtra(DECK_ID_INT, deck.id)
+                            this@MainActivity.startActivity(this)
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    SmallButton("+ Add cards", null, Color(0xFF11BB22)) {
                         Intent(this@MainActivity, EditCardActivity::class.java).apply {
                             putExtra(DECK_ID_INT, deck.id)
                             this@MainActivity.startActivity(this)
@@ -235,16 +227,23 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun SmallButton(text: String, color: Color = Color(0xFF8B76EC), onClick: () -> Unit) {
-        Box(
-            modifier = Modifier
-                .height(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(color)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp)
-        ) {
-            Text(text, Modifier.align(Alignment.Center))
+    fun SmallButton(text: String, @DrawableRes icon: Int?, color: Color = Color(0xFF8B76EC), onClick: () -> Unit) {
+        var modifier = Modifier.height(32.dp)
+        if (icon != null) modifier = modifier.width(32.dp)
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(color)
+            .clickable(onClick = onClick)
+        if (icon == null) modifier = modifier.padding(horizontal = 8.dp)
+        Box(modifier) {
+            if (icon != null)
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = text,
+                    modifier = Modifier.size(24.dp).align(Alignment.Center)
+                )
+            else
+                Text(text, Modifier.align(Alignment.Center))
         }
     }
 
